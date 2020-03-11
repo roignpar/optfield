@@ -78,6 +78,11 @@ impl Parse for ArgList {
         while !input.is_empty() {
             input.parse::<Comma>()?;
 
+            // allow trailing commas
+            if input.is_empty() {
+                break;
+            }
+
             let lookahead = input.lookahead1();
 
             if lookahead.peek(Pub) {

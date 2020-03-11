@@ -115,6 +115,13 @@ impl Args {
             field_docs: false,
         }
     }
+
+    pub fn final_visibility(&self) -> Visibility {
+        match &self.visibility {
+            None => Visibility::Inherited,
+            Some(v) => v.clone(),
+        }
+    }
 }
 
 impl ArgList {

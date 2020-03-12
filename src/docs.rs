@@ -2,6 +2,7 @@ use quote::quote;
 use syn::{parse2, Attribute, ItemStruct, LitStr};
 
 use crate::args::{Args, Doc};
+use crate::error::unexpected;
 
 const DOC: &str = "doc";
 
@@ -42,11 +43,8 @@ fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
         #item
     };
 
-    *item = parse2(doc_item).unwrap_or_else(|e| panic!(
-        "Unexpected error generating {} docs: {}\nPlease open an issue detailing how this happened!",
-        item.ident,
-        e
-    ));
+    *item = parse2(doc_item)
+        .unwrap_or_else(|e| panic!(unexpected(format!("generating {} docs", item.ident), e)));
 }
 
 fn is_doc_attr(attr: &Attribute) -> bool {

@@ -6,6 +6,7 @@ use syn::{parse_macro_input, ItemStruct};
 
 mod args;
 mod docs;
+mod error;
 mod generate;
 
 use args::Args;

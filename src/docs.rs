@@ -1,4 +1,5 @@
-use syn::{Attribute, ItemStruct, LitStr};
+use quote::quote;
+use syn::{parse2, Attribute, ItemStruct, LitStr};
 
 use crate::args::{Args, Doc};
 
@@ -33,7 +34,19 @@ fn remove_doc_attrs(item: &mut ItemStruct) {
 fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
     remove_doc_attrs(item);
 
-    unimplemented!();
+    let doc_string = docs.value();
+    let lines = doc_string.lines();
+
+    let doc_item = quote! {
+        #(#[doc = #lines])*
+        #item
+    };
+
+    *item = parse2(doc_item).unwrap_or_else(|e| panic!(
+        "Unexpected error generating {} docs: {}\nPlease open an issue detailing how this happened!",
+        item.ident,
+        e
+    ));
 }
 
 fn is_doc_attr(attr: &Attribute) -> bool {

@@ -14,25 +14,25 @@ pub fn generate(item: &mut ItemStruct, args: &Args) {
 
     match &args.doc {
         Some(Same) => {}
-        None => remove_doc_attrs(item),
+        None => remove_doc_attrs(&mut item.attrs),
         Some(Custom(docs)) => replace_doc_attrs(item, docs),
     }
 }
 
-fn remove_doc_attrs(item: &mut ItemStruct) {
-    let mut new_attrs = Vec::with_capacity(item.attrs.len());
+pub fn remove_doc_attrs(attrs: &mut Vec<Attribute>) {
+    let mut new_attrs = Vec::with_capacity(attrs.len());
 
-    for attr in &item.attrs {
+    for attr in attrs.iter() {
         if !is_doc_attr(attr) {
             new_attrs.push(attr.clone());
         }
     }
 
-    item.attrs = new_attrs;
+    *attrs = new_attrs;
 }
 
 fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
-    remove_doc_attrs(item);
+    remove_doc_attrs(&mut item.attrs);
 
     let doc_string = docs.value();
     let lines = doc_string.lines();

@@ -1,9 +1,11 @@
+use proc_macro2::TokenStream;
+use quote::quote;
 use syn::ItemStruct;
 
 use crate::args::Args;
 use crate::docs;
 
-pub fn generate(args: Args, original: &ItemStruct) -> ItemStruct {
+pub fn generate(args: Args, original: &ItemStruct) -> TokenStream {
     let mut opt_struct = original.clone();
 
     opt_struct.ident = args.name.clone();
@@ -11,5 +13,5 @@ pub fn generate(args: Args, original: &ItemStruct) -> ItemStruct {
 
     docs::generate(&mut opt_struct, &args);
 
-    opt_struct
+    quote!(#opt_struct)
 }

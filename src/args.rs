@@ -137,7 +137,7 @@ impl ArgList {
         }
     }
 
-    fn next_is_kw(input: &ParseStream) -> bool {
+    fn next_is_kw(input: ParseStream) -> bool {
         input.peek(Pub)
             || input.peek(kw::doc)
             || input.peek(kw::merge)
@@ -145,7 +145,7 @@ impl ArgList {
             || input.peek(kw::field_docs)
     }
 
-    fn parse_visibility(&mut self, input: &ParseStream) -> Result<()> {
+    fn parse_visibility(&mut self, input: ParseStream) -> Result<()> {
         if let Some(vis_span) = self.visibility {
             return ArgList::already_defined_error(input, "visibility", vis_span);
         }
@@ -159,7 +159,7 @@ impl ArgList {
         Ok(())
     }
 
-    fn parse_doc(&mut self, input: &ParseStream) -> Result<()> {
+    fn parse_doc(&mut self, input: ParseStream) -> Result<()> {
         if let Some(doc_span) = self.doc {
             return ArgList::already_defined_error(input, "doc", doc_span);
         }
@@ -173,7 +173,7 @@ impl ArgList {
         Ok(())
     }
 
-    fn parse_merge(&mut self, input: &ParseStream) -> Result<()> {
+    fn parse_merge(&mut self, input: ParseStream) -> Result<()> {
         if let Some(merge_span) = self.merge {
             return ArgList::already_defined_error(input, "merge", merge_span);
         }
@@ -187,7 +187,7 @@ impl ArgList {
         Ok(())
     }
 
-    fn parse_rewrap(&mut self, input: &ParseStream) -> Result<()> {
+    fn parse_rewrap(&mut self, input: ParseStream) -> Result<()> {
         if let Some(rewrap_span) = self.rewrap {
             return ArgList::already_defined_error(input, "rewrap", rewrap_span);
         }
@@ -201,7 +201,7 @@ impl ArgList {
         Ok(())
     }
 
-    fn parse_field_docs(&mut self, input: &ParseStream) -> Result<()> {
+    fn parse_field_docs(&mut self, input: ParseStream) -> Result<()> {
         if let Some(field_docs_span) = self.field_docs {
             return ArgList::already_defined_error(input, "field_docs", field_docs_span);
         }
@@ -216,7 +216,7 @@ impl ArgList {
     }
 
     fn already_defined_error(
-        input: &ParseStream,
+        input: ParseStream,
         arg_name: &'static str,
         prev_span: Span,
     ) -> Result<()> {

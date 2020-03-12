@@ -12,7 +12,7 @@ pub fn generate(item: &mut ItemStruct, args: &Args) {
     use Doc::*;
 
     match &args.doc {
-        Some(Same) => return,
+        Some(Same) => {}
         None => remove_doc_attrs(item),
         Some(Custom(docs)) => replace_doc_attrs(item, docs),
     }

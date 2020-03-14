@@ -6,7 +6,7 @@ use crate::error::unexpected;
 
 const DOC: &str = "doc";
 
-/// Changes itemin place.
+/// Changes item in place.
 /// If args.doc is None, removes doc attrs from item.
 /// If args.doc is Some(Same), does nothing.
 /// If args.doc is Some(Custom(docs)), sets doc attrs to docs.

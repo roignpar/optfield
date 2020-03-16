@@ -2,8 +2,9 @@ use quote::quote;
 use syn::{parse2, Field, ItemStruct, Path, Type, TypePath};
 
 use crate::args::Args;
-use crate::docs::remove_doc_attrs;
 use crate::error::unexpected;
+
+mod attrs;
 
 const OPTION: &str = "Option";
 
@@ -12,9 +13,7 @@ pub fn generate(item: &mut ItemStruct, args: &Args) {
     let item_name = item.ident.clone();
 
     for field in item.fields.iter_mut() {
-        if !args.field_docs {
-            remove_doc_attrs(&mut field.attrs);
-        }
+        attrs::generate(field, args);
 
         if field_is_option(&field) && !args.rewrap {
             continue;

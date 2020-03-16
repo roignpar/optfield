@@ -20,7 +20,7 @@ pub fn generate(item: &mut ItemStruct, args: &Args) {
     }
 }
 
-pub fn remove_doc_attrs(attrs: &mut Vec<Attribute>) {
+fn remove_doc_attrs(attrs: &mut Vec<Attribute>) {
     let mut new_attrs = Vec::with_capacity(attrs.len());
 
     for attr in attrs.iter() {
@@ -47,6 +47,6 @@ fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
         .unwrap_or_else(|e| panic!(unexpected(format!("generating {} docs", item.ident), e)));
 }
 
-fn is_doc_attr(attr: &Attribute) -> bool {
+pub fn is_doc_attr(attr: &Attribute) -> bool {
     attr.path.is_ident(DOC)
 }

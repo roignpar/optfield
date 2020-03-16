@@ -37,7 +37,7 @@ fn field_is_option(field: &Field) -> bool {
             ..
         }) => {
             if let Some(segment) = segments.first() {
-                &segment.ident == OPTION
+                segment.ident == OPTION
             } else {
                 false
             }

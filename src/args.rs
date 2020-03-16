@@ -1,7 +1,7 @@
-use proc_macro2::Span;
+use proc_macro2::{Group, Span};
 use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::token::{Comma, Eq, Pub};
-use syn::{Ident, LitStr, Visibility};
+use syn::{parse2, Ident, LitStr, Meta, Visibility};
 
 mod kw {
     // NOTE: when adding new keywords update ArgList::next_is_kw
@@ -9,6 +9,11 @@ mod kw {
     syn::custom_keyword!(merge);
     syn::custom_keyword!(rewrap);
     syn::custom_keyword!(field_docs);
+    syn::custom_keyword!(field_attrs);
+
+    pub mod attrs_sub {
+        syn::custom_keyword!(add);
+    }
 }
 
 #[derive(Debug)]
@@ -19,6 +24,7 @@ pub struct Args {
     pub rewrap: bool,
     pub doc: Option<Doc>,
     pub field_docs: bool,
+    pub field_attrs: Option<Attrs>,
 }
 
 #[derive(Debug)]
@@ -27,6 +33,7 @@ enum Arg {
     Doc(Doc),
     Rewrap(bool),
     FieldDocs(bool),
+    FieldAttrs(Attrs),
     Vis(Visibility),
 }
 
@@ -42,6 +49,19 @@ pub enum Doc {
     Custom(LitStr),
 }
 
+#[derive(Debug, Clone)]
+pub enum Attrs {
+    /// Keep same attributes.
+    Keep,
+    /// Replace with given attributes.
+    Replace(Vec<Meta>),
+    /// Keep original attributes and add the given ones.
+    Add(Vec<Meta>),
+}
+
+#[derive(Debug)]
+pub struct AttrList(Vec<Meta>);
+
 /// Parser for unordered args.
 #[derive(Debug)]
 struct ArgList {
@@ -50,6 +70,7 @@ struct ArgList {
     doc: Option<Span>,
     rewrap: Option<Span>,
     field_docs: Option<Span>,
+    field_attrs: Option<Span>,
     visibility: Option<Span>,
     list: Vec<Arg>,
 }
@@ -95,6 +116,8 @@ impl Parse for ArgList {
                 arg_list.parse_rewrap(&input)?;
             } else if lookahead.peek(kw::field_docs) {
                 arg_list.parse_field_docs(&input)?;
+            } else if lookahead.peek(kw::field_attrs) {
+                arg_list.parse_field_attrs(&input)?;
             } else {
                 return Err(lookahead.error());
             }
@@ -113,6 +136,7 @@ impl Args {
             rewrap: false,
             doc: None,
             field_docs: false,
+            field_attrs: None,
         }
     }
 
@@ -132,6 +156,7 @@ impl ArgList {
             doc: None,
             rewrap: None,
             field_docs: None,
+            field_attrs: None,
             visibility: None,
             list: Vec::with_capacity(5),
         }
@@ -143,6 +168,7 @@ impl ArgList {
             || input.peek(kw::merge)
             || input.peek(kw::rewrap)
             || input.peek(kw::field_docs)
+            || input.peek(kw::field_attrs)
     }
 
     fn parse_visibility(&mut self, input: ParseStream) -> Result<()> {
@@ -215,6 +241,20 @@ impl ArgList {
         Ok(())
     }
 
+    fn parse_field_attrs(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(field_attrs_apan) = self.field_attrs {
+            return ArgList::already_defined_error(input, "field_attrs", field_attrs_apan);
+        }
+
+        let span = input.span();
+        let field_attrs: Attrs = input.parse()?;
+
+        self.field_attrs = Some(span);
+        self.list.push(Arg::FieldAttrs(field_attrs));
+
+        Ok(())
+    }
+
     fn already_defined_error(
         input: ParseStream,
         arg_name: &'static str,
@@ -261,6 +301,54 @@ impl Parse for MergeFnName {
     }
 }
 
+impl Parse for Attrs {
+    fn parse(input: ParseStream) -> Result<Self> {
+        use Attrs::*;
+
+        input.parse::<kw::field_attrs>()?;
+
+        if input.peek(Eq) {
+            input.parse::<Eq>()?;
+
+            if input.peek(kw::attrs_sub::add) {
+                input.parse::<kw::attrs_sub::add>()?;
+
+                Ok(Add(Attrs::parse_attr_list(input)?))
+            } else {
+                Ok(Replace(Attrs::parse_attr_list(input)?))
+            }
+        } else {
+            Ok(Keep)
+        }
+    }
+}
+
+impl Attrs {
+    fn parse_attr_list(input: ParseStream) -> Result<Vec<Meta>> {
+        let group: Group = input.parse()?;
+
+        let attrs: AttrList = parse2(group.stream())?;
+
+        Ok(attrs.0)
+    }
+}
+
+impl Parse for AttrList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut attrs = Vec::new();
+
+        while !input.is_empty() {
+            attrs.push(input.parse()?);
+
+            if input.peek(Comma) {
+                input.parse::<Comma>()?;
+            }
+        }
+
+        Ok(Self(attrs))
+    }
+}
+
 impl From<ArgList> for Args {
     fn from(arg_list: ArgList) -> Args {
         use Arg::*;
@@ -273,6 +361,7 @@ impl From<ArgList> for Args {
                 Doc(doc) => args.doc = Some(doc),
                 Rewrap(rewrap) => args.rewrap = rewrap,
                 FieldDocs(field_docs) => args.field_docs = field_docs,
+                FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
                 Vis(visibility) => args.visibility = Some(visibility),
             }
         }

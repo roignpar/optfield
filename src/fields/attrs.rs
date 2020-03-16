@@ -18,32 +18,28 @@ pub fn generate(field: &mut Field, args: &Args) {
     let new_cap = compute_capacity(field, args);
     let mut new_attrs = Vec::with_capacity(new_cap);
 
-    if args.field_docs {
-        // add doc attrs
-        for attr in &field.attrs {
-            if is_doc_attr(attr) {
-                let meta = parse_meta(field, attr);
+    for attr in &field.attrs {
+        let mut add_attr = false;
 
-                new_attrs.push(meta);
+        if args.field_docs && is_doc_attr(attr) {
+            add_attr = true;
+        }
+
+        if let Some(Keep) | Some(Add(_)) = args.field_attrs {
+            if !is_doc_attr(attr) {
+                add_attr = true;
             }
+        }
+
+        if add_attr {
+            let meta = parse_meta(field, attr);
+
+            new_attrs.push(meta);
         }
     }
 
-    if let Some(field_attrs) = &args.field_attrs {
-        let field_attrs = &(*field_attrs).clone();
-
-        let new_attrs_ext = match field_attrs {
-            Keep => non_doc_attrs(field),
-            Replace(v) => v.clone(),
-            Add(v) => {
-                let mut ext = non_doc_attrs(field);
-                ext.extend(v.clone());
-
-                ext
-            }
-        };
-
-        new_attrs.extend(new_attrs_ext);
+    if let Some(Replace(v)) | Some(Add(v)) = &args.field_attrs {
+        new_attrs.extend(v.clone());
     }
 
     let parser = Attribute::parse_outer;
@@ -59,15 +55,6 @@ pub fn generate(field: &mut Field, args: &Args) {
 fn parse_meta(field: &Field, attr: &Attribute) -> Meta {
     attr.parse_meta()
         .unwrap_or_else(|e| panic!(unexpected_error(field, e)))
-}
-
-fn non_doc_attrs(field: &Field) -> Vec<Meta> {
-    field
-        .attrs
-        .iter()
-        .filter(|a| !is_doc_attr(a))
-        .map(|a| parse_meta(field, a))
-        .collect()
 }
 
 fn compute_capacity(field: &Field, args: &Args) -> usize {

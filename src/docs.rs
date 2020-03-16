@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse2, Attribute, ItemStruct, LitStr};
+use syn::{parse::Parser, Attribute, ItemStruct, LitStr};
 
 use crate::args::{Args, Doc};
 use crate::error::unexpected;
@@ -38,12 +38,13 @@ fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
     let doc_string = docs.value();
     let lines = doc_string.lines();
 
-    let doc_item = quote! {
+    let parser = Attribute::parse_outer;
+    let doc_attrs = quote! {
         #(#[doc = #lines])*
-        #item
     };
 
-    *item = parse2(doc_item)
+    item.attrs = parser
+        .parse2(doc_attrs)
         .unwrap_or_else(|e| panic!(unexpected(format!("generating {} docs", item.ident), e)));
 }
 

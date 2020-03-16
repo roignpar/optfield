@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse::Parser, Attribute, ItemStruct, LitStr};
+use syn::{parse::Parser, Attribute, ItemStruct};
 
 use crate::args::{Args, Doc};
 use crate::error::unexpected;
@@ -32,11 +32,10 @@ fn remove_doc_attrs(attrs: &mut Vec<Attribute>) {
     *attrs = new_attrs;
 }
 
-fn replace_doc_attrs(item: &mut ItemStruct, docs: &LitStr) {
+fn replace_doc_attrs(item: &mut ItemStruct, docs: &str) {
     remove_doc_attrs(&mut item.attrs);
 
-    let doc_string = docs.value();
-    let lines = doc_string.lines();
+    let lines = docs.lines();
 
     let parser = Attribute::parse_outer;
     let doc_attrs = quote! {

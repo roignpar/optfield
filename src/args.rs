@@ -46,7 +46,7 @@ pub enum MergeFnName {
 #[derive(Debug)]
 pub enum Doc {
     Same,
-    Custom(LitStr),
+    Custom(String),
 }
 
 #[derive(Debug, Clone)]
@@ -278,7 +278,7 @@ impl Parse for Doc {
 
             let doc_text: LitStr = input.parse()?;
 
-            Ok(Doc::Custom(doc_text))
+            Ok(Doc::Custom(doc_text.value()))
         } else {
             Ok(Doc::Same)
         }

@@ -86,6 +86,6 @@ pub trait AttrGenerator {
     }
 }
 
-fn is_doc_attr(attr: &Attribute) -> bool {
+pub fn is_doc_attr(attr: &Attribute) -> bool {
     attr.path.is_ident(DOC)
 }

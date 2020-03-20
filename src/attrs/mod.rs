@@ -61,3 +61,291 @@ impl<'a> AttrGenerator for AttrGen<'a> {
 pub fn generate(item: &ItemStruct, args: &Args) -> Vec<Attribute> {
     AttrGen::new(item, args).generate()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use proc_macro2::TokenStream;
+    use syn::{parse::Parser, parse2};
+
+    use generator::is_doc_attr;
+
+    #[test]
+    fn keep_same_docs() {
+        let item = parse_item(quote! {
+            /// some
+            /// docs
+            #[some_attr]
+            struct S;
+        });
+
+        let cases = vec![
+            quote! {
+                Opt,
+                doc
+            },
+            quote! {
+                Opt,
+                doc,
+                attrs
+            },
+            quote! {
+                Opt,
+                doc,
+                attrs = (new_attr)
+            },
+            quote! {
+                Opt,
+                doc,
+                attrs = add(new_attr)
+            },
+        ];
+
+        let item_docs = doc_attrs(&item.attrs);
+
+        for case in cases {
+            let args: Args = parse_args(case);
+
+            let generated = generate(&item, &args);
+
+            assert!(attrs_contain_all(&generated, &item_docs));
+        }
+    }
+
+    #[test]
+    fn remove_docs() {
+        let item = parse_item(quote! {
+            /// some
+            /// docs
+            #[some_attr]
+            struct S;
+        });
+
+        let cases = vec![
+            quote! {
+                Opt
+            },
+            quote! {
+                Opt,
+                attrs
+            },
+            quote! {
+                Opt,
+                attrs = (new_attr)
+            },
+            quote! {
+                Opt,
+                attrs = add(new_attr)
+            },
+        ];
+
+        let item_docs = doc_attrs(&item.attrs);
+
+        for case in cases {
+            let args: Args = parse_args(case);
+
+            let generated = generate(&item, &args);
+
+            assert!(!attrs_contain_any(&generated, &item_docs));
+        }
+    }
+
+    #[test]
+    fn replace_docs() {
+        let item = parse_item(quote! {
+            /// some
+            /// old
+            /// docs
+            #[some_attr]
+            struct S;
+        });
+
+        let new_doc_text = r#"docs
+            that will
+            replace the old
+            ones"#;
+
+        let cases = vec![
+            quote! {
+                Opt,
+                doc = #new_doc_text
+            },
+            quote! {
+                Opt,
+                doc = #new_doc_text,
+                attrs
+            },
+            quote! {
+                Opt,
+                doc = #new_doc_text,
+                attrs = (new_attr),
+            },
+            quote! {
+                Opt,
+                doc = #new_doc_text,
+                attrs = add(new_attr),
+            },
+        ];
+
+        let new_doc_attr = parse_attr(quote! {
+            #[doc = #new_doc_text]
+        });
+
+        let item_docs = doc_attrs(&item.attrs);
+
+        for case in cases {
+            let args = parse_args(case);
+
+            let generated = generate(&item, &args);
+
+            assert!(!attrs_contain_any(&generated, &item_docs));
+            assert!(generated.contains(&new_doc_attr));
+        }
+    }
+
+    #[test]
+    fn remove_attrs() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                #[some]
+                #[attrs]
+                struct S;
+            },
+            quote! {
+                Opt
+            },
+        );
+
+        let generated = generate(&item, &args);
+
+        assert!(!attrs_contain_any(&generated, &item.attrs));
+    }
+
+    #[test]
+    fn keep_attrs() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                #[some]
+                #[attrs]
+                struct S;
+            },
+            quote! {
+                Opt,
+                attrs
+            },
+        );
+
+        let generated = generate(&item, &args);
+
+        assert!(attrs_contain_all(&generated, &item.attrs));
+    }
+
+    #[test]
+    fn replace_attrs() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                #[some]
+                #[attrs]
+                struct S;
+            },
+            quote! {
+                Opt,
+                attrs = (
+                    other
+                    attributes
+                )
+            },
+        );
+
+        let new_attrs = parse_attrs(quote! {
+            #[other]
+            #[attributes]
+        });
+
+        let generated = generate(&item, &args);
+
+        assert!(!attrs_contain_any(&generated, &item.attrs));
+        assert!(attrs_contain_all(&generated, &new_attrs));
+    }
+
+    #[test]
+    fn add_attrs() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                #[some]
+                #[attrs]
+                struct S;
+            },
+            quote! {
+                Opt,
+                attrs = add(
+                    other
+                    attributes
+                )
+            },
+        );
+
+        let new_attrs = parse_attrs(quote! {
+            #[other]
+            #[attributes]
+        });
+
+        let generated = generate(&item, &args);
+
+        assert!(attrs_contain_all(&generated, &item.attrs));
+        assert!(attrs_contain_all(&generated, &new_attrs));
+    }
+
+    fn parse_item_and_args(
+        item_tokens: TokenStream,
+        args_tokens: TokenStream,
+    ) -> (ItemStruct, Args) {
+        (parse_item(item_tokens), parse_args(args_tokens))
+    }
+
+    fn parse_item(tokens: TokenStream) -> ItemStruct {
+        parse2(tokens).unwrap()
+    }
+
+    fn parse_args(tokens: TokenStream) -> Args {
+        parse2(tokens).unwrap()
+    }
+
+    fn parse_attr(tokens: TokenStream) -> Attribute {
+        parse_attrs(tokens).get(0).unwrap().clone()
+    }
+
+    fn parse_attrs(tokens: TokenStream) -> Vec<Attribute> {
+        let parser = Attribute::parse_outer;
+        parser.parse2(tokens).unwrap()
+    }
+
+    fn attrs_contain_all(attrs: &[Attribute], other_attrs: &[Attribute]) -> bool {
+        for attr in other_attrs {
+            if !attrs.contains(attr) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn attrs_contain_any(attrs: &[Attribute], any_attrs: &[Attribute]) -> bool {
+        for attr in any_attrs {
+            if attrs.contains(attr) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn doc_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
+        attrs
+            .iter()
+            .filter(|a| is_doc_attr(a))
+            .map(|a| a.clone())
+            .collect()
+    }
+}

@@ -8,6 +8,7 @@ mod kw {
     syn::custom_keyword!(doc);
     syn::custom_keyword!(merge);
     syn::custom_keyword!(rewrap);
+    syn::custom_keyword!(attrs);
     syn::custom_keyword!(field_docs);
     syn::custom_keyword!(field_attrs);
 
@@ -23,6 +24,7 @@ pub struct Args {
     pub merge: Option<MergeFnName>,
     pub rewrap: bool,
     pub doc: Option<Doc>,
+    pub attrs: Option<Attrs>,
     pub field_docs: bool,
     pub field_attrs: Option<Attrs>,
 }
@@ -32,9 +34,10 @@ enum Arg {
     Merge(MergeFnName),
     Doc(Doc),
     Rewrap(bool),
+    Vis(Visibility),
+    Attrs(Attrs),
     FieldDocs(bool),
     FieldAttrs(Attrs),
-    Vis(Visibility),
 }
 
 #[derive(Debug)]
@@ -69,9 +72,10 @@ struct ArgList {
     merge: Option<Span>,
     doc: Option<Span>,
     rewrap: Option<Span>,
+    visibility: Option<Span>,
+    attrs: Option<Span>,
     field_docs: Option<Span>,
     field_attrs: Option<Span>,
-    visibility: Option<Span>,
     list: Vec<Arg>,
 }
 
@@ -114,6 +118,8 @@ impl Parse for ArgList {
                 arg_list.parse_merge(&input)?;
             } else if lookahead.peek(kw::rewrap) {
                 arg_list.parse_rewrap(&input)?;
+            } else if lookahead.peek(kw::attrs) {
+                arg_list.parse_attrs(&input)?;
             } else if lookahead.peek(kw::field_docs) {
                 arg_list.parse_field_docs(&input)?;
             } else if lookahead.peek(kw::field_attrs) {
@@ -135,6 +141,7 @@ impl Args {
             merge: None,
             rewrap: false,
             doc: None,
+            attrs: None,
             field_docs: false,
             field_attrs: None,
         }
@@ -155,9 +162,10 @@ impl ArgList {
             merge: None,
             doc: None,
             rewrap: None,
+            visibility: None,
+            attrs: None,
             field_docs: None,
             field_attrs: None,
-            visibility: None,
             list: Vec::with_capacity(5),
         }
     }
@@ -169,6 +177,7 @@ impl ArgList {
             || input.peek(kw::rewrap)
             || input.peek(kw::field_docs)
             || input.peek(kw::field_attrs)
+            || input.peek(kw::attrs)
     }
 
     fn parse_visibility(&mut self, input: ParseStream) -> Result<()> {
@@ -227,6 +236,22 @@ impl ArgList {
         Ok(())
     }
 
+    fn parse_attrs(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(attrs_span) = self.attrs {
+            return ArgList::already_defined_error(input, "attrs", attrs_span);
+        }
+
+        let span = input.span();
+
+        input.parse::<kw::attrs>()?;
+        let attrs: Attrs = input.parse()?;
+
+        self.attrs = Some(span);
+        self.list.push(Arg::Attrs(attrs));
+
+        Ok(())
+    }
+
     fn parse_field_docs(&mut self, input: ParseStream) -> Result<()> {
         if let Some(field_docs_span) = self.field_docs {
             return ArgList::already_defined_error(input, "field_docs", field_docs_span);
@@ -247,6 +272,8 @@ impl ArgList {
         }
 
         let span = input.span();
+
+        input.parse::<kw::field_attrs>()?;
         let field_attrs: Attrs = input.parse()?;
 
         self.field_attrs = Some(span);
@@ -305,8 +332,6 @@ impl Parse for Attrs {
     fn parse(input: ParseStream) -> Result<Self> {
         use Attrs::*;
 
-        input.parse::<kw::field_attrs>()?;
-
         if input.peek(Eq) {
             input.parse::<Eq>()?;
 
@@ -360,9 +385,10 @@ impl From<ArgList> for Args {
                 Merge(merge_name) => args.merge = Some(merge_name),
                 Doc(doc) => args.doc = Some(doc),
                 Rewrap(rewrap) => args.rewrap = rewrap,
+                Vis(visibility) => args.visibility = Some(visibility),
+                Attrs(attrs) => args.attrs = Some(attrs),
                 FieldDocs(field_docs) => args.field_docs = field_docs,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
-                Vis(visibility) => args.visibility = Some(visibility),
             }
         }
 

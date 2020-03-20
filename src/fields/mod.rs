@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse2, Field, ItemStruct, Path, Type, TypePath};
+use syn::{parse2, Field, Fields, ItemStruct, Path, Type, TypePath};
 
 use crate::args::Args;
 use crate::error::unexpected;
@@ -9,10 +9,13 @@ mod attrs;
 const OPTION: &str = "Option";
 
 /// Wraps item fields in Option.
-pub fn generate(item: &mut ItemStruct, args: &Args) {
+pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
     let item_name = item.ident.clone();
 
-    for field in item.fields.iter_mut() {
+    let mut fields = item.fields.clone();
+
+    for field in fields.iter_mut() {
+        field.attrs = attrs::generate(field, args);
         attrs::generate(field, args);
 
         if field_is_option(&field) && !args.rewrap {
@@ -28,6 +31,8 @@ pub fn generate(item: &mut ItemStruct, args: &Args) {
         field.ty = parse2(opt_type)
             .unwrap_or_else(|e| panic!(unexpected(format!("generating {} fields", item_name), e)));
     }
+
+    fields
 }
 
 fn field_is_option(field: &Field) -> bool {

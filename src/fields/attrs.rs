@@ -37,10 +37,6 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
     }
 }
 
-pub fn generate(field: &mut Field, args: &Args) {
-    field.attrs = {
-        let generator = FieldAttrGen::new(field, args);
-
-        generator.generate()
-    };
+pub fn generate(field: &Field, args: &Args) -> Vec<Attribute> {
+    FieldAttrGen::new(field, args).generate()
 }

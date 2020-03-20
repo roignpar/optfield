@@ -11,8 +11,8 @@ pub fn generate(args: Args, original: &ItemStruct) -> TokenStream {
     opt_struct.ident = args.name.clone();
     opt_struct.vis = args.final_visibility();
 
-    attrs::generate(&mut opt_struct, &args);
-    fields::generate(&mut opt_struct, &args);
+    opt_struct.attrs = attrs::generate(original, &args);
+    opt_struct.fields = fields::generate(original, &args);
 
     quote!(#opt_struct)
 }

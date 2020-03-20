@@ -58,10 +58,6 @@ impl<'a> AttrGenerator for AttrGen<'a> {
     }
 }
 
-pub fn generate(item: &mut ItemStruct, args: &Args) {
-    item.attrs = {
-        let gen = AttrGen::new(item, args);
-
-        gen.generate()
-    };
+pub fn generate(item: &ItemStruct, args: &Args) -> Vec<Attribute> {
+    AttrGen::new(item, args).generate()
 }

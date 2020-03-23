@@ -5,6 +5,7 @@ use crate::args::Attrs;
 use crate::error;
 
 const DOC: &str = "doc";
+const OPT_ATTR: &str = "optfield";
 
 pub trait AttrGenerator {
     fn no_docs(&self) -> bool;
@@ -62,6 +63,10 @@ pub trait AttrGenerator {
                 if !is_doc_attr(attr) {
                     add_attr = true;
                 }
+            }
+
+            if attr.path.is_ident(OPT_ATTR) {
+                add_attr = false
             }
 
             if add_attr {

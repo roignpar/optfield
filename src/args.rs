@@ -392,3 +392,80 @@ impl From<ArgList> for Args {
         args
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quote::quote;
+
+    use crate::test_util::*;
+
+    #[test]
+    #[should_panic(expected = "visibility already defined")]
+    fn duplicate_visibility_panics() {
+        parse_args(quote! {
+            Opt,
+            pub,
+            pub(crate)
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "doc already defined")]
+    fn duplicate_doc_panics() {
+        parse_args(quote! {
+            Opt,
+            doc = "docs",
+            doc,
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "merge_fn already defined")]
+    fn duplicate_merge_fn_panics() {
+        parse_args(quote! {
+            Opt,
+            merge_fn = fn_name,
+            merge_fn,
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "rewrap already defined")]
+    fn duplicate_rewrap_panics() {
+        parse_args(quote! {
+            Opt,
+            rewrap,
+            rewrap
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "attrs already defined")]
+    fn duplicate_attrs_panics() {
+        parse_args(quote! {
+            Opt,
+            attrs = (new_attr),
+            attrs = add(new_attr)
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "field_docs already defined")]
+    fn duplicate_field_docs_panics() {
+        parse_args(quote! {
+            Opt,
+            field_docs,
+            field_docs
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "field_attrs already defined")]
+    fn duplicate_field_attrs_panics() {
+        parse_args(quote! {
+            Opt,
+            field_attrs,
+            field_attrs = (new_attr)
+        });
+    }
+}

@@ -66,10 +66,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Vec<Attribute> {
 mod tests {
     use super::*;
 
-    use proc_macro2::TokenStream;
-    use syn::{parse::Parser, parse2};
-
-    use generator::is_doc_attr;
+    use crate::test_util::*;
 
     #[test]
     fn keep_same_docs() {
@@ -333,57 +330,5 @@ mod tests {
             assert!(!generated.contains(&optfield_attr1));
             assert!(!generated.contains(&optfield_attr2));
         }
-    }
-
-    fn parse_item_and_args(
-        item_tokens: TokenStream,
-        args_tokens: TokenStream,
-    ) -> (ItemStruct, Args) {
-        (parse_item(item_tokens), parse_args(args_tokens))
-    }
-
-    fn parse_item(tokens: TokenStream) -> ItemStruct {
-        parse2(tokens).unwrap()
-    }
-
-    fn parse_args(tokens: TokenStream) -> Args {
-        parse2(tokens).unwrap()
-    }
-
-    fn parse_attr(tokens: TokenStream) -> Attribute {
-        parse_attrs(tokens).get(0).unwrap().clone()
-    }
-
-    fn parse_attrs(tokens: TokenStream) -> Vec<Attribute> {
-        let parser = Attribute::parse_outer;
-        parser.parse2(tokens).unwrap()
-    }
-
-    fn attrs_contain_all(attrs: &[Attribute], other_attrs: &[Attribute]) -> bool {
-        for attr in other_attrs {
-            if !attrs.contains(attr) {
-                return false;
-            }
-        }
-
-        true
-    }
-
-    fn attrs_contain_any(attrs: &[Attribute], any_attrs: &[Attribute]) -> bool {
-        for attr in any_attrs {
-            if attrs.contains(attr) {
-                return true;
-            }
-        }
-
-        false
-    }
-
-    fn doc_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
-        attrs
-            .iter()
-            .filter(|a| is_doc_attr(a))
-            .map(|a| a.clone())
-            .collect()
     }
 }

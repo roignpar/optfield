@@ -6,7 +6,7 @@ use syn::{parse2, Ident, LitStr, Meta, Visibility};
 mod kw {
     // NOTE: when adding new keywords update ArgList::next_is_kw
     syn::custom_keyword!(doc);
-    syn::custom_keyword!(merge);
+    syn::custom_keyword!(merge_fn);
     syn::custom_keyword!(rewrap);
     syn::custom_keyword!(attrs);
     syn::custom_keyword!(field_docs);
@@ -114,7 +114,7 @@ impl Parse for ArgList {
                 arg_list.parse_visibility(&input)?;
             } else if lookahead.peek(kw::doc) {
                 arg_list.parse_doc(&input)?;
-            } else if lookahead.peek(kw::merge) {
+            } else if lookahead.peek(kw::merge_fn) {
                 arg_list.parse_merge(&input)?;
             } else if lookahead.peek(kw::rewrap) {
                 arg_list.parse_rewrap(&input)?;
@@ -173,7 +173,7 @@ impl ArgList {
     fn next_is_kw(input: ParseStream) -> bool {
         input.peek(Pub)
             || input.peek(kw::doc)
-            || input.peek(kw::merge)
+            || input.peek(kw::merge_fn)
             || input.peek(kw::rewrap)
             || input.peek(kw::field_docs)
             || input.peek(kw::field_attrs)
@@ -210,7 +210,7 @@ impl ArgList {
 
     fn parse_merge(&mut self, input: ParseStream) -> Result<()> {
         if let Some(merge_span) = self.merge {
-            return ArgList::already_defined_error(input, "merge", merge_span);
+            return ArgList::already_defined_error(input, "merge_fn", merge_span);
         }
 
         let span = input.span();
@@ -311,7 +311,7 @@ impl Parse for Doc {
 
 impl Parse for MergeFnName {
     fn parse(input: ParseStream) -> Result<Self> {
-        input.parse::<kw::merge>()?;
+        input.parse::<kw::merge_fn>()?;
 
         if input.peek(Eq) {
             input.parse::<Eq>()?;

@@ -63,7 +63,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Vec<Attribute> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     use proc_macro2::TokenStream;

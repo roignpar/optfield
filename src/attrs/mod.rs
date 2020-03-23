@@ -297,6 +297,44 @@ mod tests {
         assert!(attrs_contain_all(&generated, &new_attrs));
     }
 
+    #[test]
+    fn remove_other_optfield_attrs() {
+        let optfield_attr1 = parse_attr(quote! {
+            #[optfield(Opt1, attrs)]
+        });
+
+        let optfield_attr2 = parse_attr(quote! {
+            #[optfield(Opt2, attrs, doc)]
+        });
+
+        let item = parse_item(quote! {
+            #[attr]
+            #optfield_attr1
+            #optfield_attr2
+            struct S;
+        });
+
+        let cases = vec![
+            quote! {
+                Opt,
+                attrs
+            },
+            quote! {
+                Opt,
+                attrs = add(new)
+            },
+        ];
+
+        for case in cases {
+            let args = parse_args(case);
+
+            let generated = generate(&item, &args);
+
+            assert!(!generated.contains(&optfield_attr1));
+            assert!(!generated.contains(&optfield_attr2));
+        }
+    }
+
     fn parse_item_and_args(
         item_tokens: TokenStream,
         args_tokens: TokenStream,

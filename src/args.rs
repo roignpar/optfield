@@ -21,7 +21,7 @@ mod kw {
 pub struct Args {
     pub name: Ident,
     pub visibility: Option<Visibility>,
-    pub merge: Option<MergeFnName>,
+    pub merge: Option<MergeFn>,
     pub rewrap: bool,
     pub doc: Option<Doc>,
     pub attrs: Option<Attrs>,
@@ -31,13 +31,19 @@ pub struct Args {
 
 #[derive(Debug)]
 enum Arg {
-    Merge(MergeFnName),
+    Merge(MergeFn),
     Doc(Doc),
     Rewrap(bool),
     Vis(Visibility),
     Attrs(Attrs),
     FieldDocs(bool),
     FieldAttrs(Attrs),
+}
+
+#[derive(Debug)]
+pub struct MergeFn {
+    pub visibility: Visibility,
+    pub name: MergeFnName,
 }
 
 #[derive(Debug)]
@@ -214,7 +220,7 @@ impl ArgList {
         }
 
         let span = input.span();
-        let merge: MergeFnName = input.parse()?;
+        let merge: MergeFn = input.parse()?;
 
         self.merge = Some(span);
         self.list.push(Arg::Merge(merge));
@@ -309,18 +315,37 @@ impl Parse for Doc {
     }
 }
 
-impl Parse for MergeFnName {
+impl Parse for MergeFn {
     fn parse(input: ParseStream) -> Result<Self> {
         input.parse::<kw::merge_fn>()?;
 
         if input.peek(Eq) {
             input.parse::<Eq>()?;
 
-            let fn_name: Ident = input.parse()?;
+            let visibility = if input.peek(Pub) {
+                input.parse()?
+            } else {
+                Visibility::Inherited
+            };
 
-            Ok(MergeFnName::Custom(fn_name))
+            let name = if input.peek(Ident) {
+                MergeFnName::Custom(input.parse()?)
+            } else {
+                MergeFnName::Default
+            };
+
+            Ok(MergeFn { visibility, name })
         } else {
-            Ok(MergeFnName::Default)
+            Ok(MergeFn::default())
+        }
+    }
+}
+
+impl Default for MergeFn {
+    fn default() -> MergeFn {
+        MergeFn {
+            visibility: Visibility::Inherited,
+            name: MergeFnName::Default,
         }
     }
 }
@@ -379,7 +404,7 @@ impl From<ArgList> for Args {
 
         for arg in arg_list.list {
             match arg {
-                Merge(merge_name) => args.merge = Some(merge_name),
+                Merge(merge) => args.merge = Some(merge),
                 Doc(doc) => args.doc = Some(doc),
                 Rewrap(rewrap) => args.rewrap = rewrap,
                 Vis(visibility) => args.visibility = Some(visibility),

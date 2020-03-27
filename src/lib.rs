@@ -9,6 +9,7 @@ mod attrs;
 mod error;
 mod fields;
 mod generate;
+mod merge;
 
 use args::Args;
 use generate::generate;

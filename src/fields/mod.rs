@@ -18,7 +18,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
         field.attrs = attrs::generate(field, args);
         attrs::generate(field, args);
 
-        if field_is_option(&field) && !args.rewrap {
+        if is_option(&field) && !args.rewrap {
             continue;
         }
 
@@ -35,7 +35,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
     fields
 }
 
-fn field_is_option(field: &Field) -> bool {
+pub fn is_option(field: &Field) -> bool {
     match &field.ty {
         Type::Path(TypePath {
             path: Path { segments, .. },

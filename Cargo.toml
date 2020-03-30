@@ -14,3 +14,6 @@ proc-macro2 = "1.0.9"
 [dependencies.syn]
 version = "1.0.16"
 features = ["full", "extra-traits"]
+
+[dev-dependencies]
+paste = "0.1.8"

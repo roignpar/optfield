@@ -424,6 +424,33 @@ mod tests {
 
     use crate::test_util::*;
 
+    macro_rules! duplicate_arg_panics_test {
+        ($attr:meta, $expected:literal) => {
+            duplicate_arg_panics_test!($attr, $attr, $expected);
+        };
+
+        ($attr:meta, $dup:meta, $expected:literal) => {
+            paste::item! {
+                #[test]
+                #[should_panic(expected = $expected)]
+                fn [<duplicate_ $attr _panics>]() {
+                    parse_args(quote! {
+                        Opt,
+                        $attr,
+                        $dup
+                    });
+                }
+            }
+        };
+    }
+
+    duplicate_arg_panics_test!(doc, doc = "custom", "doc already defined");
+    duplicate_arg_panics_test!(merge_fn, "merge_fn already defined");
+    duplicate_arg_panics_test!(rewrap, "rewrap already defined");
+    duplicate_arg_panics_test!(attrs, "attrs already defined");
+    duplicate_arg_panics_test!(field_docs, "field_docs already defined");
+    duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
+
     #[test]
     #[should_panic(expected = "visibility already defined")]
     fn duplicate_visibility_panics() {
@@ -431,66 +458,6 @@ mod tests {
             Opt,
             pub,
             pub(crate)
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "doc already defined")]
-    fn duplicate_doc_panics() {
-        parse_args(quote! {
-            Opt,
-            doc = "docs",
-            doc,
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "merge_fn already defined")]
-    fn duplicate_merge_fn_panics() {
-        parse_args(quote! {
-            Opt,
-            merge_fn = fn_name,
-            merge_fn,
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "rewrap already defined")]
-    fn duplicate_rewrap_panics() {
-        parse_args(quote! {
-            Opt,
-            rewrap,
-            rewrap
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "attrs already defined")]
-    fn duplicate_attrs_panics() {
-        parse_args(quote! {
-            Opt,
-            attrs = (new_attr),
-            attrs = add(new_attr)
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "field_docs already defined")]
-    fn duplicate_field_docs_panics() {
-        parse_args(quote! {
-            Opt,
-            field_docs,
-            field_docs
-        });
-    }
-
-    #[test]
-    #[should_panic(expected = "field_attrs already defined")]
-    fn duplicate_field_attrs_panics() {
-        parse_args(quote! {
-            Opt,
-            field_attrs,
-            field_attrs = (new_attr)
         });
     }
 }

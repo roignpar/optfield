@@ -96,7 +96,7 @@ impl Parse for Args {
 impl Parse for ArgList {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
-            return Err(input.error("expected struct name"));
+            return Err(input.error("expected opt struct name"));
         }
 
         if ArgList::next_is_kw(&input) {
@@ -420,6 +420,7 @@ impl From<ArgList> for Args {
 
 #[cfg(test)]
 mod tests {
+    use proc_macro2::TokenStream;
     use quote::quote;
 
     use crate::test_util::*;
@@ -490,5 +491,11 @@ mod tests {
             pub,
             Opt
         });
+    }
+
+    #[test]
+    #[should_panic(expected = "expected opt struct name")]
+    fn empty_args_panics() {
+        parse_args(TokenStream::new());
     }
 }

@@ -17,7 +17,7 @@ mod kw {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Args {
     pub name: Ident,
     pub visibility: Option<Visibility>,
@@ -29,7 +29,6 @@ pub struct Args {
     pub field_attrs: Option<Attrs>,
 }
 
-#[derive(Debug)]
 enum Arg {
     Merge(MergeFn),
     Doc(Doc),
@@ -40,25 +39,25 @@ enum Arg {
     FieldAttrs(Attrs),
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct MergeFn {
     pub visibility: Visibility,
     pub name: MergeFnName,
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum MergeFnName {
     Default,
     Custom(Ident),
 }
 
-#[derive(Debug)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Doc {
     Same,
     Custom(String),
 }
 
-#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Attrs {
     /// Keep same attributes.
     Keep,
@@ -72,7 +71,6 @@ pub enum Attrs {
 pub struct AttrList(Vec<Meta>);
 
 /// Parser for unordered args.
-#[derive(Debug)]
 struct ArgList {
     struct_name: Ident,
     merge: Option<Span>,

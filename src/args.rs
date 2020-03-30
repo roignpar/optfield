@@ -39,13 +39,14 @@ enum Arg {
     FieldAttrs(Attrs),
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+
 pub struct MergeFn {
     pub visibility: Visibility,
     pub name: MergeFnName,
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
 pub enum MergeFnName {
     Default,
     Custom(Ident),
@@ -418,8 +419,11 @@ impl From<ArgList> for Args {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use proc_macro2::TokenStream;
     use quote::quote;
+    use syn::parse::Parser;
 
     use crate::test_util::*;
 
@@ -495,5 +499,200 @@ mod tests {
     #[should_panic(expected = "expected opt struct name")]
     fn empty_args_panics() {
         parse_args(TokenStream::new());
+    }
+
+    #[test]
+    fn parse_no_optional_args() {
+        let args = parse_args(quote! {
+            Opt
+        });
+
+        assert_eq!(args.visibility, None);
+        assert_eq!(args.final_visibility(), Visibility::Inherited);
+        assert_eq!(args.merge, None);
+        assert_eq!(args.rewrap, false);
+        assert_eq!(args.doc, None);
+        assert_eq!(args.attrs, None);
+        assert_eq!(args.field_docs, false);
+        assert_eq!(args.field_attrs, None);
+    }
+
+    #[test]
+    fn parse_visibility() {
+        let cases = vec![
+            (quote! {Opt, pub}, quote!(pub)),
+            (quote! {Opt, pub(crate)}, quote!(pub(crate))),
+            (quote! {Opt, pub(in test::path)}, quote!(pub(in test::path))),
+        ];
+
+        for (args_tokens, vis_tokens) in cases {
+            let args: Args = syn::parse2(args_tokens).unwrap();
+            let vis: Visibility = syn::parse2(vis_tokens).unwrap();
+
+            assert_eq!(args.visibility.as_ref(), Some(&vis));
+            assert_eq!(args.final_visibility(), vis);
+        }
+    }
+
+    #[test]
+    fn parse_merge_fn() {
+        let custom_fn_name = MergeFnName::Custom(syn::parse2(quote!(custom_fn)).unwrap());
+
+        let cases = vec![
+            (
+                quote! {Opt, merge_fn},
+                MergeFnName::Default,
+                Visibility::Inherited,
+            ),
+            (
+                quote! {Opt, merge_fn = custom_fn},
+                custom_fn_name.clone(),
+                Visibility::Inherited,
+            ),
+            (
+                quote! {Opt, merge_fn = pub custom_fn},
+                custom_fn_name.clone(),
+                syn::parse2(quote!(pub)).unwrap(),
+            ),
+            (
+                quote! {Opt, merge_fn = pub(crate) custom_fn},
+                custom_fn_name.clone(),
+                syn::parse2(quote!(pub(crate))).unwrap(),
+            ),
+            (
+                quote! {Opt, merge_fn = pub(in test::path) custom_fn},
+                custom_fn_name,
+                syn::parse2(quote!(pub(in test::path))).unwrap(),
+            ),
+        ];
+
+        for (args_tokens, fn_name, vis) in cases {
+            let args = parse_args(args_tokens);
+
+            assert_eq!(args.merge.clone().unwrap().name, fn_name);
+            assert_eq!(args.merge.unwrap().visibility, vis);
+        }
+    }
+
+    #[test]
+    fn parse_rewrap() {
+        let args = parse_args(quote! {
+            Opt,
+            rewrap
+        });
+
+        assert!(args.rewrap);
+    }
+
+    #[test]
+    fn parse_doc() {
+        let cases = vec![
+            (quote! {Opt, doc}, Doc::Same),
+            (
+                quote! {Opt, doc = "custom docs"},
+                Doc::Custom("custom docs".to_string()),
+            ),
+        ];
+
+        for (args_tokens, doc) in cases {
+            let args: Args = syn::parse2(args_tokens).unwrap();
+
+            assert_eq!(args.doc, Some(doc));
+        }
+    }
+
+    #[test]
+    fn parse_attr_list() {
+        let meta_tokens = quote! {
+            (
+                derive(Debug, Clone),
+                serde(rename_all = "camelCase", default)
+            )
+        };
+
+        let meta = Attrs::parse_attr_list.parse2(meta_tokens).unwrap();
+
+        let meta_attrs = parse_attrs(quote! {
+            #(#[#meta])*
+        });
+
+        let attrs = parse_attrs(quote! {
+            #[derive(Debug, Clone)]
+            #[serde(rename_all = "camelCase", default)]
+        });
+
+        assert_eq!(meta_attrs, attrs);
+    }
+
+    #[test]
+    fn parse_attrs_test() {
+        let parser = Attrs::parse_attr_list;
+
+        let cases = vec![
+            (quote! {Opt, attrs}, Attrs::Keep),
+            (
+                quote! {Opt, attrs = (derive(Debug), serde(rename_all = "camelCase"))},
+                Attrs::Replace(
+                    parser
+                        .parse2(quote! {(derive(Debug), serde(rename_all = "camelCase"))})
+                        .unwrap(),
+                ),
+            ),
+            (
+                quote! {Opt, attrs = add(derive(Clone), serde(default))},
+                Attrs::Add(
+                    parser
+                        .parse2(quote! {(derive(Clone), serde(default))})
+                        .unwrap(),
+                ),
+            ),
+        ];
+
+        for (args_tokens, attrs) in cases {
+            let args = parse_args(args_tokens);
+
+            assert_eq!(args.attrs, Some(attrs));
+        }
+    }
+
+    #[test]
+    fn parse_field_docs() {
+        let args = parse_args(quote! {
+            Opt,
+            field_docs
+        });
+
+        assert!(args.field_docs);
+    }
+
+    #[test]
+    fn parse_field_attrs() {
+        let parser = Attrs::parse_attr_list;
+
+        let cases = vec![
+            (quote! {Opt, field_attrs}, Attrs::Keep),
+            (
+                quote! {Opt, field_attrs = (derive(Debug), serde(transparent))},
+                Attrs::Replace(
+                    parser
+                        .parse2(quote! {(derive(Debug), serde(transparent))})
+                        .unwrap(),
+                ),
+            ),
+            (
+                quote! {Opt, field_attrs = add(derive(Clone), serde(deny_unknown_fields))},
+                Attrs::Add(
+                    parser
+                        .parse2(quote! {(derive(Clone), serde(deny_unknown_fields))})
+                        .unwrap(),
+                ),
+            ),
+        ];
+
+        for (args_tokens, attrs) in cases {
+            let args = parse_args(args_tokens);
+
+            assert_eq!(args.field_attrs, Some(attrs));
+        }
     }
 }

@@ -100,7 +100,7 @@ impl Parse for ArgList {
         }
 
         if ArgList::next_is_kw(&input) {
-            return Err(input.error("first argument must be struct name"));
+            return Err(input.error("first argument must be opt struct name"));
         }
 
         let name: Ident = input.parse()?;
@@ -458,6 +458,37 @@ mod tests {
             Opt,
             pub,
             pub(crate)
+        });
+    }
+
+    macro_rules! struct_name_not_first_panics {
+        ($attr:meta) => {
+            paste::item! {
+                #[test]
+                #[should_panic(expected = "first argument must be opt struct name")]
+                fn [<$attr _first_panics>]() {
+                    parse_args(quote! {
+                        $attr,
+                        Opt
+                    });
+                }
+            }
+        };
+    }
+
+    struct_name_not_first_panics!(doc);
+    struct_name_not_first_panics!(merge_fn);
+    struct_name_not_first_panics!(rewrap);
+    struct_name_not_first_panics!(attrs);
+    struct_name_not_first_panics!(field_docs);
+    struct_name_not_first_panics!(field_attrs);
+
+    #[test]
+    #[should_panic(expected = "first argument must be opt struct name")]
+    fn visibility_first_panics() {
+        parse_args(quote! {
+            pub,
+            Opt
         });
     }
 }

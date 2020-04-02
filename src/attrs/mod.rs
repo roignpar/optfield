@@ -102,7 +102,7 @@ mod tests {
         let item_docs = doc_attrs(&item.attrs);
 
         for case in cases {
-            let args: Args = parse_args(case);
+            let args = parse_args(case);
 
             let generated = generate(&item, &args);
 
@@ -140,7 +140,7 @@ mod tests {
         let item_docs = doc_attrs(&item.attrs);
 
         for case in cases {
-            let args: Args = parse_args(case);
+            let args = parse_args(case);
 
             let generated = generate(&item, &args);
 

@@ -50,3 +50,28 @@ pub fn is_option(field: &Field) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::test_util::*;
+
+    #[test]
+    fn test_is_not_option() {
+        let field = parse_field(quote! {
+            field: String
+        });
+
+        assert!(!is_option(&field));
+    }
+
+    #[test]
+    fn test_is_option() {
+        let field = parse_field(quote! {
+            field: Option<String>
+        });
+
+        assert!(is_option(&field));
+    }
+}

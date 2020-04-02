@@ -33,7 +33,7 @@ pub fn optfield(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod test_util {
     use proc_macro2::TokenStream;
-    use syn::{parse::Parser, parse2, Attribute, ItemStruct};
+    use syn::{parse::Parser, parse2, Attribute, Field, ItemStruct};
 
     use crate::args::Args;
     use crate::attrs::generator::is_doc_attr;
@@ -45,8 +45,19 @@ mod test_util {
         (parse_item(item_tokens), parse_args(args_tokens))
     }
 
+    pub fn parse_field_and_args(
+        field_tokens: TokenStream,
+        args_tokens: TokenStream,
+    ) -> (Field, Args) {
+        (parse_field(field_tokens), parse_args(args_tokens))
+    }
+
     pub fn parse_item(tokens: TokenStream) -> ItemStruct {
         parse2(tokens).unwrap()
+    }
+
+    pub fn parse_field(tokens: TokenStream) -> Field {
+        Field::parse_named.parse2(tokens).unwrap()
     }
 
     pub fn parse_args(tokens: TokenStream) -> Args {

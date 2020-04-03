@@ -22,7 +22,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
             continue;
         }
 
-        let ty = field.ty.clone();
+        let ty = &field.ty;
 
         let opt_type = quote! {
             Option<#ty>

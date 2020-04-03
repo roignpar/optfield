@@ -5,7 +5,7 @@ use syn::ItemStruct;
 use crate::args::Args;
 use crate::{attrs, fields, merge};
 
-pub fn generate(args: Args, original: &ItemStruct) -> TokenStream {
+pub fn generate(original: &ItemStruct, args: Args) -> TokenStream {
     let mut opt_struct = original.clone();
 
     opt_struct.ident = args.name.clone();

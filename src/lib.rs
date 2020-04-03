@@ -19,7 +19,7 @@ pub fn optfield(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item: ItemStruct = parse_macro_input!(item);
     let args: Args = parse_macro_input!(attr);
 
-    let opt_item = generate(args, &item);
+    let opt_item = generate(&item, args);
 
     let out = quote! {
         #item

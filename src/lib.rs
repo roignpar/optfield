@@ -33,7 +33,7 @@ pub fn optfield(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod test_util {
     use proc_macro2::TokenStream;
-    use syn::{parse::Parser, parse2, Attribute, Field, ItemStruct};
+    use syn::{parse::Parser, parse2, Attribute, Field, Fields, ItemStruct, Type};
 
     use crate::args::Args;
     use crate::attrs::generator::is_doc_attr;
@@ -70,6 +70,18 @@ mod test_util {
 
     pub fn parse_attrs(tokens: TokenStream) -> Vec<Attribute> {
         Attribute::parse_outer.parse2(tokens).unwrap()
+    }
+
+    pub fn parse_type(tokens: TokenStream) -> Type {
+        parse2(tokens).unwrap()
+    }
+
+    pub fn parse_types(tokens: Vec<TokenStream>) -> Vec<Type> {
+        tokens.into_iter().map(parse_type).collect()
+    }
+
+    pub fn field_types(fields: Fields) -> Vec<Type> {
+        fields.iter().map(|f| f.ty.clone()).collect()
     }
 
     pub fn attrs_contain_all(attrs: &[Attribute], other_attrs: &[Attribute]) -> bool {

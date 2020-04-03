@@ -74,4 +74,61 @@ mod tests {
 
         assert!(is_option(&field));
     }
+
+    #[test]
+    fn without_rewrap() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                struct S<T> {
+                    string: Option<String>,
+                    int: i32,
+                    generic: T,
+                    optional_generic: Option<T>
+                }
+            },
+            quote! {
+                Opt
+            },
+        );
+
+        let expected_types = parse_types(vec![
+            quote! {Option<String>},
+            quote! {Option<i32>},
+            quote! {Option<T>},
+            quote! {Option<T>},
+        ]);
+
+        let generated = generate(&item, &args);
+
+        assert_eq!(field_types(generated), expected_types);
+    }
+
+    #[test]
+    fn with_rewrap() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                struct S<T> {
+                    text: String,
+                    number: Option<i128>,
+                    generic: T,
+                    optional_generic: Option<T>
+                }
+            },
+            quote! {
+                Opt,
+                rewrap
+            },
+        );
+
+        let expected_types = parse_types(vec![
+            quote! {Option<String>},
+            quote! {Option<Option<i128>>},
+            quote! {Option<T>},
+            quote! {Option<Option<T>>},
+        ]);
+
+        let generated = generate(&item, &args);
+
+        assert_eq!(field_types(generated), expected_types);
+    }
 }

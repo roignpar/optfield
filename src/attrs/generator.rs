@@ -80,12 +80,11 @@ pub trait AttrGenerator {
             new_attrs.extend(v.clone());
         }
 
-        let parser = Attribute::parse_outer;
         let attrs_tokens = quote! {
             #(#[#new_attrs])*
         };
 
-        parser
+        Attribute::parse_outer
             .parse2(attrs_tokens)
             .unwrap_or_else(|e| panic!(error::unexpected(self.error_action_text(), e)))
     }

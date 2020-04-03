@@ -69,8 +69,7 @@ mod test_util {
     }
 
     pub fn parse_attrs(tokens: TokenStream) -> Vec<Attribute> {
-        let parser = Attribute::parse_outer;
-        parser.parse2(tokens).unwrap()
+        Attribute::parse_outer.parse2(tokens).unwrap()
     }
 
     pub fn attrs_contain_all(attrs: &[Attribute], other_attrs: &[Attribute]) -> bool {

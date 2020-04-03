@@ -502,6 +502,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_name() {
+        let args = parse_args(quote! {
+            OptionalFields
+        });
+
+        assert_eq!(args.name, "OptionalFields");
+    }
+
+    #[test]
     fn parse_no_optional_args() {
         let args = parse_args(quote! {
             Opt

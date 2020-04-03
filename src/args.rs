@@ -9,7 +9,7 @@ mod kw {
     syn::custom_keyword!(merge_fn);
     syn::custom_keyword!(rewrap);
     syn::custom_keyword!(attrs);
-    syn::custom_keyword!(field_docs);
+    syn::custom_keyword!(field_doc);
     syn::custom_keyword!(field_attrs);
 
     pub mod attrs_sub {
@@ -25,7 +25,7 @@ pub struct Args {
     pub rewrap: bool,
     pub doc: Option<Doc>,
     pub attrs: Option<Attrs>,
-    pub field_docs: bool,
+    pub field_doc: bool,
     pub field_attrs: Option<Attrs>,
 }
 
@@ -79,7 +79,7 @@ struct ArgList {
     rewrap: Option<Span>,
     visibility: Option<Span>,
     attrs: Option<Span>,
-    field_docs: Option<Span>,
+    field_doc: Option<Span>,
     field_attrs: Option<Span>,
     list: Vec<Arg>,
 }
@@ -125,8 +125,8 @@ impl Parse for ArgList {
                 arg_list.parse_rewrap(&input)?;
             } else if lookahead.peek(kw::attrs) {
                 arg_list.parse_attrs(&input)?;
-            } else if lookahead.peek(kw::field_docs) {
-                arg_list.parse_field_docs(&input)?;
+            } else if lookahead.peek(kw::field_doc) {
+                arg_list.parse_field_doc(&input)?;
             } else if lookahead.peek(kw::field_attrs) {
                 arg_list.parse_field_attrs(&input)?;
             } else {
@@ -147,7 +147,7 @@ impl Args {
             rewrap: false,
             doc: None,
             attrs: None,
-            field_docs: false,
+            field_doc: false,
             field_attrs: None,
         }
     }
@@ -169,7 +169,7 @@ impl ArgList {
             rewrap: None,
             visibility: None,
             attrs: None,
-            field_docs: None,
+            field_doc: None,
             field_attrs: None,
             list: Vec::with_capacity(5),
         }
@@ -180,7 +180,7 @@ impl ArgList {
             || input.peek(kw::doc)
             || input.peek(kw::merge_fn)
             || input.peek(kw::rewrap)
-            || input.peek(kw::field_docs)
+            || input.peek(kw::field_doc)
             || input.peek(kw::field_attrs)
             || input.peek(kw::attrs)
     }
@@ -257,15 +257,15 @@ impl ArgList {
         Ok(())
     }
 
-    fn parse_field_docs(&mut self, input: ParseStream) -> Result<()> {
-        if let Some(field_docs_span) = self.field_docs {
-            return ArgList::already_defined_error(input, "field_docs", field_docs_span);
+    fn parse_field_doc(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(field_doc_span) = self.field_doc {
+            return ArgList::already_defined_error(input, "field_doc", field_doc_span);
         }
 
         let span = input.span();
-        input.parse::<kw::field_docs>()?;
+        input.parse::<kw::field_doc>()?;
 
-        self.field_docs = Some(span);
+        self.field_doc = Some(span);
         self.list.push(Arg::FieldDocs(true));
 
         Ok(())
@@ -408,7 +408,7 @@ impl From<ArgList> for Args {
                 Rewrap(rewrap) => args.rewrap = rewrap,
                 Vis(visibility) => args.visibility = Some(visibility),
                 Attrs(attrs) => args.attrs = Some(attrs),
-                FieldDocs(field_docs) => args.field_docs = field_docs,
+                FieldDocs(field_doc) => args.field_doc = field_doc,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
             }
         }
@@ -451,7 +451,7 @@ mod tests {
     duplicate_arg_panics_test!(merge_fn, "merge_fn already defined");
     duplicate_arg_panics_test!(rewrap, "rewrap already defined");
     duplicate_arg_panics_test!(attrs, "attrs already defined");
-    duplicate_arg_panics_test!(field_docs, "field_docs already defined");
+    duplicate_arg_panics_test!(field_doc, "field_doc already defined");
     duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
 
     #[test]
@@ -483,7 +483,7 @@ mod tests {
     struct_name_not_first_panics!(merge_fn);
     struct_name_not_first_panics!(rewrap);
     struct_name_not_first_panics!(attrs);
-    struct_name_not_first_panics!(field_docs);
+    struct_name_not_first_panics!(field_doc);
     struct_name_not_first_panics!(field_attrs);
 
     #[test]
@@ -522,7 +522,7 @@ mod tests {
         assert_eq!(args.rewrap, false);
         assert_eq!(args.doc, None);
         assert_eq!(args.attrs, None);
-        assert_eq!(args.field_docs, false);
+        assert_eq!(args.field_doc, false);
         assert_eq!(args.field_attrs, None);
     }
 
@@ -665,13 +665,13 @@ mod tests {
     }
 
     #[test]
-    fn parse_field_docs() {
+    fn parse_field_doc() {
         let args = parse_args(quote! {
             Opt,
-            field_docs
+            field_doc
         });
 
-        assert!(args.field_docs);
+        assert!(args.field_doc);
     }
 
     #[test]

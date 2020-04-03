@@ -16,7 +16,7 @@ impl<'a> FieldAttrGen<'a> {
 
 impl<'a> AttrGenerator for FieldAttrGen<'a> {
     fn no_docs(&self) -> bool {
-        !self.args.field_docs
+        !self.args.field_doc
     }
 
     fn error_action_text(&self) -> String {
@@ -102,21 +102,21 @@ mod tests {
         let cases = vec![
             quote! {
                 Opt,
-                field_docs
+                field_doc
             },
             quote! {
                 Opt,
-                field_docs,
+                field_doc,
                 field_attrs
             },
             quote! {
                 Opt,
-                field_docs,
+                field_doc,
                 field_attrs = (new_attr)
             },
             quote! {
                 Opt,
-                field_docs,
+                field_doc,
                 field_attrs = add(new_attr)
             },
         ];

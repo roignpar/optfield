@@ -63,4 +63,50 @@ mod tests {
 
         assert_eq!(item.generics, generated.generics);
     }
+
+    #[test]
+    fn sets_visibility() {
+        let item = parse_item(quote! {
+            struct S;
+        });
+
+        let cases = vec![
+            (
+                quote! {
+                    Opt
+                },
+                quote!(),
+            ),
+            (
+                quote! {
+                    Opt,
+                    pub
+                },
+                quote!(pub),
+            ),
+            (
+                quote! {
+                    Opt,
+                    pub(crate)
+                },
+                quote!(pub(crate)),
+            ),
+            (
+                quote! {
+                    Opt,
+                    pub(in test::path)
+                },
+                quote!(pub(in test::path)),
+            ),
+        ];
+
+        for (args_tokens, vis_tokens) in cases {
+            let args = parse_args(args_tokens);
+            let vis = parse_visibility(vis_tokens);
+
+            let generated = parse_item(generate(&item, args));
+
+            assert_eq!(generated.vis, vis);
+        }
+    }
 }

@@ -58,6 +58,7 @@
 //!     text: Option<String>
 //! }
 //! ```
+//! Field visibility is preserved.
 //!
 //! # Rewrapping `Option` fields
 //! By default, fields that are already wrapped in `Option<T>` are not wrapped

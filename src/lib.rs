@@ -43,12 +43,12 @@
 //! ```
 //!
 //! # Visibility
-//! By default, opt structs are private. To use custom visibility simply pass
-//! it as an argument:
+//! By default, opt structs are private. To use custom visibility simply add it
+//! right before the opt struct name:
 //! ```
 //! # use optfield::*;
-//! #[optfield(Opt, pub(crate))]
-//! struct MyStruct{
+//! #[optfield(pub(crate) Opt)]
+//! struct MyStruct {
 //!     text: String
 //! }
 //! ```

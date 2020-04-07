@@ -141,7 +141,7 @@
 //! ```
 //!
 //! # Attributes
-//! The `attrs` argument makes optfield insert the same attributes as the
+//! The `attrs` argument alone makes optfield insert the same attributes as the
 //! original:
 //! ```
 //! # use optfield::*;
@@ -346,9 +346,9 @@
 //! #[derive(Deserialize)]
 //! struct Opt {
 //!     #[serde(default)]
-//!     my_text: String,
+//!     my_text: Option<String>,
 //!     #[serde(default)]
-//!     my_number: i32
+//!     my_number: Option<i32>
 //! }
 //! ```
 //!

@@ -19,8 +19,7 @@ mod kw {
 
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Args {
-    pub name: Ident,
-    pub visibility: Option<Visibility>,
+    pub item: GenItem,
     pub merge: Option<MergeFn>,
     pub rewrap: bool,
     pub doc: Option<Doc>,
@@ -33,14 +32,18 @@ enum Arg {
     Merge(MergeFn),
     Doc(Doc),
     Rewrap(bool),
-    Vis(Visibility),
     Attrs(Attrs),
     FieldDocs(bool),
     FieldAttrs(Attrs),
 }
 
-#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct GenItem {
+    pub name: Ident,
+    pub visibility: Option<Visibility>,
+}
 
+#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
 pub struct MergeFn {
     pub visibility: Visibility,
     pub name: MergeFnName,
@@ -73,11 +76,10 @@ pub struct AttrList(Vec<Meta>);
 
 /// Parser for unordered args.
 struct ArgList {
-    struct_name: Ident,
+    item: GenItem,
     merge: Option<Span>,
     doc: Option<Span>,
     rewrap: Option<Span>,
-    visibility: Option<Span>,
     attrs: Option<Span>,
     field_doc: Option<Span>,
     field_attrs: Option<Span>,
@@ -102,8 +104,8 @@ impl Parse for ArgList {
             return Err(input.error("first argument must be opt struct name"));
         }
 
-        let name: Ident = input.parse()?;
-        let mut arg_list = ArgList::new(name);
+        let item = input.parse()?;
+        let mut arg_list = ArgList::new(item);
 
         while !input.is_empty() {
             input.parse::<Comma>()?;
@@ -115,9 +117,7 @@ impl Parse for ArgList {
 
             let lookahead = input.lookahead1();
 
-            if lookahead.peek(Pub) {
-                arg_list.parse_visibility(&input)?;
-            } else if lookahead.peek(kw::doc) {
+            if lookahead.peek(kw::doc) {
                 arg_list.parse_doc(&input)?;
             } else if lookahead.peek(kw::merge_fn) {
                 arg_list.parse_merge(&input)?;
@@ -139,10 +139,9 @@ impl Parse for ArgList {
 }
 
 impl Args {
-    fn new(name: Ident) -> Self {
+    fn new(item: GenItem) -> Self {
         Self {
-            name,
-            visibility: None,
+            item,
             merge: None,
             rewrap: false,
             doc: None,
@@ -151,23 +150,15 @@ impl Args {
             field_attrs: None,
         }
     }
-
-    pub fn final_visibility(&self) -> Visibility {
-        match &self.visibility {
-            None => Visibility::Inherited,
-            Some(v) => v.clone(),
-        }
-    }
 }
 
 impl ArgList {
-    fn new(name: Ident) -> Self {
+    fn new(item: GenItem) -> Self {
         Self {
-            struct_name: name,
+            item,
             merge: None,
             doc: None,
             rewrap: None,
-            visibility: None,
             attrs: None,
             field_doc: None,
             field_attrs: None,
@@ -176,27 +167,12 @@ impl ArgList {
     }
 
     fn next_is_kw(input: ParseStream) -> bool {
-        input.peek(Pub)
-            || input.peek(kw::doc)
+        input.peek(kw::doc)
             || input.peek(kw::merge_fn)
             || input.peek(kw::rewrap)
             || input.peek(kw::field_doc)
             || input.peek(kw::field_attrs)
             || input.peek(kw::attrs)
-    }
-
-    fn parse_visibility(&mut self, input: ParseStream) -> Result<()> {
-        if let Some(vis_span) = self.visibility {
-            return ArgList::already_defined_error(input, "visibility", vis_span);
-        }
-
-        let span = input.span();
-        let vis: Visibility = input.parse()?;
-
-        self.visibility = Some(span);
-        self.list.push(Arg::Vis(vis));
-
-        Ok(())
     }
 
     fn parse_doc(&mut self, input: ParseStream) -> Result<()> {
@@ -295,6 +271,29 @@ impl ArgList {
         let mut e = input.error(&format!("{} already defined", arg_name));
         e.combine(Error::new(prev_span, &format!("{} defined here", arg_name)));
         Err(e)
+    }
+}
+
+impl GenItem {
+    pub fn final_visibility(&self) -> Visibility {
+        match &self.visibility {
+            None => Visibility::Inherited,
+            Some(v) => v.clone(),
+        }
+    }
+}
+
+impl Parse for GenItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let visibility = if input.peek(Pub) {
+            Some(input.parse()?)
+        } else {
+            None
+        };
+
+        let name = input.parse()?;
+
+        Ok(Self { name, visibility })
     }
 }
 
@@ -399,14 +398,13 @@ impl From<ArgList> for Args {
     fn from(arg_list: ArgList) -> Args {
         use Arg::*;
 
-        let mut args = Args::new(arg_list.struct_name);
+        let mut args = Args::new(arg_list.item);
 
         for arg in arg_list.list {
             match arg {
                 Merge(merge) => args.merge = Some(merge),
                 Doc(doc) => args.doc = Some(doc),
                 Rewrap(rewrap) => args.rewrap = rewrap,
-                Vis(visibility) => args.visibility = Some(visibility),
                 Attrs(attrs) => args.attrs = Some(attrs),
                 FieldDocs(field_doc) => args.field_doc = field_doc,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
@@ -454,16 +452,6 @@ mod tests {
     duplicate_arg_panics_test!(field_doc, "field_doc already defined");
     duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
 
-    #[test]
-    #[should_panic(expected = "visibility already defined")]
-    fn duplicate_visibility_panics() {
-        parse_args(quote! {
-            Opt,
-            pub,
-            pub(crate)
-        });
-    }
-
     macro_rules! struct_name_not_first_panics {
         ($attr:meta) => {
             paste::item! {
@@ -487,15 +475,6 @@ mod tests {
     struct_name_not_first_panics!(field_attrs);
 
     #[test]
-    #[should_panic(expected = "first argument must be opt struct name")]
-    fn visibility_first_panics() {
-        parse_args(quote! {
-            pub,
-            Opt
-        });
-    }
-
-    #[test]
     #[should_panic(expected = "expected opt struct name")]
     fn empty_args_panics() {
         parse_args(TokenStream::new());
@@ -503,11 +482,26 @@ mod tests {
 
     #[test]
     fn parse_name() {
-        let args = parse_args(quote! {
-            OptionalFields
-        });
+        let cases = vec![
+            quote! {
+                OptionalFields
+            },
+            quote! {
+                pub OptionalFields
+            },
+            quote! {
+                pub(crate) OptionalFields
+            },
+            quote! {
+                pub(in test::path) OptionalFields
+            },
+        ];
 
-        assert_eq!(args.name, "OptionalFields");
+        for case in cases {
+            let args = parse_args(case);
+
+            assert_eq!(args.item.name, "OptionalFields");
+        }
     }
 
     #[test]
@@ -516,8 +510,8 @@ mod tests {
             Opt
         });
 
-        assert_eq!(args.visibility, None);
-        assert_eq!(args.final_visibility(), Visibility::Inherited);
+        assert_eq!(args.item.visibility, None);
+        assert_eq!(args.item.final_visibility(), Visibility::Inherited);
         assert_eq!(args.merge, None);
         assert_eq!(args.rewrap, false);
         assert_eq!(args.doc, None);
@@ -529,17 +523,17 @@ mod tests {
     #[test]
     fn parse_visibility() {
         let cases = vec![
-            (quote! {Opt, pub}, quote!(pub)),
-            (quote! {Opt, pub(crate)}, quote!(pub(crate))),
-            (quote! {Opt, pub(in test::path)}, quote!(pub(in test::path))),
+            (quote! {pub Opt}, quote!(pub)),
+            (quote! {pub(crate) Opt}, quote!(pub(crate))),
+            (quote! {pub(in test::path) Opt}, quote!(pub(in test::path))),
         ];
 
         for (args_tokens, vis_tokens) in cases {
             let args: Args = syn::parse2(args_tokens).unwrap();
             let vis: Visibility = syn::parse2(vis_tokens).unwrap();
 
-            assert_eq!(args.visibility.as_ref(), Some(&vis));
-            assert_eq!(args.final_visibility(), vis);
+            assert_eq!(args.item.visibility.as_ref(), Some(&vis));
+            assert_eq!(args.item.final_visibility(), vis);
         }
     }
 

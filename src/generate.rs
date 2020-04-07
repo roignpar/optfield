@@ -8,8 +8,8 @@ use crate::{attrs, fields, merge};
 pub fn generate(original: &ItemStruct, args: Args) -> TokenStream {
     let mut opt_struct = original.clone();
 
-    opt_struct.ident = args.name.clone();
-    opt_struct.vis = args.final_visibility();
+    opt_struct.ident = args.item.name.clone();
+    opt_struct.vis = args.item.final_visibility();
 
     opt_struct.attrs = attrs::generate(original, &args);
     opt_struct.fields = fields::generate(original, &args);
@@ -79,22 +79,19 @@ mod tests {
             ),
             (
                 quote! {
-                    Opt,
-                    pub
+                    pub Opt
                 },
                 quote!(pub),
             ),
             (
                 quote! {
-                    Opt,
-                    pub(crate)
+                    pub(crate) Opt
                 },
                 quote!(pub(crate)),
             ),
             (
                 quote! {
-                    Opt,
-                    pub(in test::path)
+                    pub(in test::path) Opt
                 },
                 quote!(pub(in test::path)),
             ),

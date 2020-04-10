@@ -25,5 +25,5 @@ features = ["full", "extra-traits"]
 paste = "0.1.10"
 
 [dev-dependencies.serde]
-version = "1.0.105"
+version = "1.0.106"
 features = ["derive"]

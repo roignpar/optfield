@@ -1,5 +1,5 @@
-//! `optfield` is a macro that generates structs with optional fields from
-//! existing structs.
+//! `optfield` is a macro that, given a struct, generates another struct with
+//! the same fields, but wrapped in `Option<T>`.
 //!
 //! # Simple examples
 //! The first argument is the name of the generated struct:
@@ -117,7 +117,7 @@
 //!     text: Option<String>
 //! }
 //! ```
-//! Or write custom documentation:
+//! Or write custom documentation by giving `doc` a value:
 //! ```
 //! # use optfield::*;
 //! #[optfield(
@@ -184,7 +184,7 @@
 //!     text: Option<String>
 //! }
 //! ```
-//! To replace with other attributes:
+//! To replace with other attributes, `attrs = (...)`:
 //! ```
 //! # use optfield::*;
 //! #[optfield(
@@ -360,12 +360,13 @@
 //! ```
 //! # struct Opt;
 //! # impl Opt {
-//! // assuming the opt struct is named Opt
-//! fn merge_opt(&mut self, opt: Opt) // takes opt by value
+//! // assuming the opt struct is named Opt;
+//! // takes opt by value;
+//! fn merge_opt(&mut self, opt: Opt)
 //! # {}
 //! # }
 //! ```
-//! When merging, all values of the opt struct that are not `None` are set as
+//! When merging, all values of the opt struct that are `Some(...)` are set as
 //! values of the original struct fields.
 //!
 //! To use it:
@@ -395,9 +396,9 @@
 //! assert_eq!(original.number, 1);
 //! ```
 //! The merge function can be given:
-//! * custom name: `merge_fn = merge_other`
+//! * custom name: `merge_fn = my_merge_fn`
 //! * custom visibility (default is private): `merge_fn = pub(crate)`
-//! * both: `merge_fn = pub merge_other`
+//! * both: `merge_fn = pub my_merge_fn`
 extern crate proc_macro;
 
 use crate::proc_macro::TokenStream;

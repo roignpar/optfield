@@ -1,0 +1,45 @@
+use optfield::optfield;
+
+#[test]
+fn from_struct() {
+    #[optfield(Opt, attrs, from)]
+    #[optfield(OptRewrap, attrs, rewrap, from)]
+    #[derive(Clone, Debug, PartialEq)]
+    struct Original<'a, T> {
+        number: u32,
+        text: &'a str,
+        generic: T,
+        optional: Option<&'a [u8]>,
+    }
+
+    let original = Original {
+        number: 12,
+        text: "test",
+        generic: "testing".to_string(),
+        optional: Some(&[1, 2, 3, 4, 5]),
+    };
+
+    let opt = Opt::from(original.clone());
+    assert_eq!(original.number, opt.number.unwrap());
+    assert_eq!(original.text, opt.text.unwrap());
+    assert_eq!(original.generic, opt.generic.unwrap());
+    assert_eq!(original.optional, opt.optional);
+
+    let opt_rewrap = OptRewrap::from(original.clone());
+    assert_eq!(original.number, opt_rewrap.number.unwrap());
+    assert_eq!(original.text, opt_rewrap.text.unwrap());
+    assert_eq!(original.generic, opt_rewrap.generic.unwrap());
+    assert_eq!(original.optional, opt_rewrap.optional.unwrap());
+}
+
+#[test]
+fn from_tup() {
+    #[optfield(Opt, attrs, from)]
+    #[derive(Clone, Debug, PartialEq)]
+    struct Original(i32, String);
+
+    let original = Original(21, "test".to_string());
+    let opt = Opt::from(original.clone());
+    assert_eq!(original.0, opt.0.unwrap());
+    assert_eq!(original.1, opt.1.unwrap());
+}

@@ -42,7 +42,10 @@ impl<'a> AttrGenerator for AttrGen<'a> {
                 doc = #d
             };
 
-            Some(parse2(tokens).unwrap_or_else(|e| panic!(unexpected(self.error_action_text(), e))))
+            Some(
+                parse2(tokens)
+                    .unwrap_or_else(|e| panic!("{}", unexpected(self.error_action_text(), e))),
+            )
         } else {
             None
         }

@@ -37,7 +37,7 @@ pub trait AttrGenerator {
 
     fn parse_meta(&self, attr: &Attribute) -> Meta {
         attr.parse_meta()
-            .unwrap_or_else(|e| panic!(error::unexpected(self.error_action_text(), e)))
+            .unwrap_or_else(|e| panic!("{}", error::unexpected(self.error_action_text(), e)))
     }
 
     fn generate(&self) -> Vec<Attribute> {
@@ -86,7 +86,7 @@ pub trait AttrGenerator {
 
         Attribute::parse_outer
             .parse2(attrs_tokens)
-            .unwrap_or_else(|e| panic!(error::unexpected(self.error_action_text(), e)))
+            .unwrap_or_else(|e| panic!("{}", error::unexpected(self.error_action_text(), e)))
     }
 }
 

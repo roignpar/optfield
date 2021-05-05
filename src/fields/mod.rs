@@ -28,8 +28,12 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
             Option<#ty>
         };
 
-        field.ty = parse2(opt_type)
-            .unwrap_or_else(|e| panic!(unexpected(format!("generating {} fields", item_name), e)));
+        field.ty = parse2(opt_type).unwrap_or_else(|e| {
+            panic!(
+                "{}",
+                unexpected(format!("generating {} fields", item_name), e)
+            )
+        });
     }
 
     fields

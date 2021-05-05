@@ -8,6 +8,7 @@ use crate::fields;
 pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenStream {
     if args.from {
         let item_name = &item.ident;
+        let item_generics = &item.generics;
 
         let opt_name = &opt_item.ident;
         let opt_generics = &opt_item.generics;
@@ -15,8 +16,8 @@ pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenS
         let fields = field_bindings(&item.fields, args);
 
         quote! {
-            impl#opt_generics From<#item_name#opt_generics> for #opt_name#opt_generics {
-                fn from(item: #item_name#opt_generics) -> #opt_name#opt_generics {
+            impl#opt_generics From<#item_name#item_generics> for #opt_name#opt_generics {
+                fn from(item: #item_name#item_generics) -> #opt_name#opt_generics {
                     #opt_name {
                         #fields
                     }

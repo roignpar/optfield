@@ -403,8 +403,7 @@
 //! * both: `merge_fn = pub my_merge_fn`
 //!
 //! # From
-//! When the `from` argument is used, `From<OriginalStruct>` is implemented for the OptStruct.
-//!
+//! When the `from` argument is used, `From<MyStruct>` is implemented for `Opt`.
 //! ```
 //! # use optfield::*;
 //! #[optfield(Opt, from)]

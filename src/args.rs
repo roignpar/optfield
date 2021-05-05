@@ -86,8 +86,8 @@ struct ArgList {
     attrs: Option<Span>,
     field_doc: Option<Span>,
     field_attrs: Option<Span>,
-    list: Vec<Arg>,
     from: Option<Span>,
+    list: Vec<Arg>,
 }
 
 impl Parse for Args {
@@ -169,8 +169,8 @@ impl ArgList {
             attrs: None,
             field_doc: None,
             field_attrs: None,
-            list: Vec::with_capacity(5),
             from: None,
+            list: Vec::with_capacity(6),
         }
     }
 

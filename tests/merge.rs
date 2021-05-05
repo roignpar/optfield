@@ -10,7 +10,7 @@ fn merge_struct() {
         text: &'a str,
         generic: T,
         optional: Option<&'a [u8]>,
-    };
+    }
 
     let original = Original {
         number: 12,

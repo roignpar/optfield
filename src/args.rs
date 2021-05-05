@@ -475,6 +475,7 @@ mod tests {
     duplicate_arg_panics_test!(attrs, "attrs already defined");
     duplicate_arg_panics_test!(field_doc, "field_doc already defined");
     duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
+    duplicate_arg_panics_test!(from, "from already defined");
 
     macro_rules! struct_name_not_first_panics {
         ($attr:meta) => {
@@ -497,6 +498,7 @@ mod tests {
     struct_name_not_first_panics!(attrs);
     struct_name_not_first_panics!(field_doc);
     struct_name_not_first_panics!(field_attrs);
+    struct_name_not_first_panics!(from);
 
     #[test]
     #[should_panic(expected = "expected opt struct name")]
@@ -542,6 +544,7 @@ mod tests {
         assert_eq!(args.attrs, None);
         assert_eq!(args.field_doc, false);
         assert_eq!(args.field_attrs, None);
+        assert_eq!(args.from, false);
     }
 
     #[test]
@@ -721,5 +724,15 @@ mod tests {
 
             assert_eq!(args.field_attrs, Some(attrs));
         }
+    }
+
+    #[test]
+    fn parse_from() {
+        let args = parse_args(quote! {
+            Opt,
+            from
+        });
+
+        assert!(args.from);
     }
 }

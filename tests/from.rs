@@ -33,13 +33,20 @@ fn from_struct() {
 }
 
 #[test]
-fn from_tup() {
+fn from_tuple_struct() {
     #[optfield(Opt, attrs, from)]
+    #[optfield(OptRewrap, attrs, rewrap, from)]
     #[derive(Clone, Debug, PartialEq)]
-    struct Original(i32, String);
+    struct Original<T>(i32, String, Option<T>);
 
-    let original = Original(21, "test".to_string());
+    let original = Original(21, "test".to_string(), Some(1));
     let opt = Opt::from(original.clone());
     assert_eq!(original.0, opt.0.unwrap());
     assert_eq!(original.1, opt.1.unwrap());
+    assert_eq!(original.2, opt.2);
+
+    let opt_rewrap = OptRewrap::from(original.clone());
+    assert_eq!(original.0, opt_rewrap.0.unwrap());
+    assert_eq!(original.1, opt_rewrap.1.unwrap());
+    assert_eq!(original.2, opt_rewrap.2.unwrap());
 }

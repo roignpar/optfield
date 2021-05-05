@@ -3,7 +3,7 @@ use quote::quote;
 use syn::ItemStruct;
 
 use crate::args::Args;
-use crate::{attrs, fields, merge};
+use crate::{attrs, fields, from, merge};
 
 pub fn generate(original: &ItemStruct, args: Args) -> TokenStream {
     let mut opt_struct = original.clone();
@@ -16,10 +16,14 @@ pub fn generate(original: &ItemStruct, args: Args) -> TokenStream {
 
     let merge_impl = merge::generate(original, &opt_struct, &args);
 
+    let from_impl = from::generate(original, &opt_struct, &args);
+
     quote! {
         #opt_struct
 
         #merge_impl
+
+        #from_impl
     }
 }
 

@@ -401,6 +401,26 @@
 //! * custom name: `merge_fn = my_merge_fn`
 //! * custom visibility (default is private): `merge_fn = pub(crate)`
 //! * both: `merge_fn = pub my_merge_fn`
+//!
+//! # From
+//! When the `from` argument is used, `From<MyStruct>` is implemented for `Opt`.
+//! ```
+//! # use optfield::*;
+//! #[optfield(Opt, from)]
+//! struct MyStruct {
+//!     text: String,
+//!     number: i32,
+//! }
+//!
+//! let original = MyStruct {
+//!     text: "super".to_string(),
+//!     number: 2,
+//! };
+//!
+//! let from = Opt::from(original);
+//! assert_eq!(from.text.unwrap(), "super");
+//! assert_eq!(from.number.unwrap(), 2);
+//! ```
 extern crate proc_macro;
 
 use crate::proc_macro::TokenStream;
@@ -411,6 +431,7 @@ mod args;
 mod attrs;
 mod error;
 mod fields;
+mod from;
 mod generate;
 mod merge;
 

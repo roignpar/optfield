@@ -11,6 +11,7 @@ mod kw {
     syn::custom_keyword!(attrs);
     syn::custom_keyword!(field_doc);
     syn::custom_keyword!(field_attrs);
+    syn::custom_keyword!(from);
 
     pub mod attrs_sub {
         syn::custom_keyword!(add);
@@ -26,6 +27,7 @@ pub struct Args {
     pub attrs: Option<Attrs>,
     pub field_doc: bool,
     pub field_attrs: Option<Attrs>,
+    pub from: bool,
 }
 
 enum Arg {
@@ -35,6 +37,7 @@ enum Arg {
     Attrs(Attrs),
     FieldDocs(bool),
     FieldAttrs(Attrs),
+    From(bool),
 }
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -83,6 +86,7 @@ struct ArgList {
     attrs: Option<Span>,
     field_doc: Option<Span>,
     field_attrs: Option<Span>,
+    from: Option<Span>,
     list: Vec<Arg>,
 }
 
@@ -129,6 +133,8 @@ impl Parse for ArgList {
                 arg_list.parse_field_doc(&input)?;
             } else if lookahead.peek(kw::field_attrs) {
                 arg_list.parse_field_attrs(&input)?;
+            } else if lookahead.peek(kw::from) {
+                arg_list.parse_from(&input)?;
             } else {
                 return Err(lookahead.error());
             }
@@ -148,6 +154,7 @@ impl Args {
             attrs: None,
             field_doc: false,
             field_attrs: None,
+            from: false,
         }
     }
 }
@@ -162,7 +169,8 @@ impl ArgList {
             attrs: None,
             field_doc: None,
             field_attrs: None,
-            list: Vec::with_capacity(5),
+            from: None,
+            list: Vec::with_capacity(6),
         }
     }
 
@@ -173,6 +181,7 @@ impl ArgList {
             || input.peek(kw::field_doc)
             || input.peek(kw::field_attrs)
             || input.peek(kw::attrs)
+            || input.peek(kw::from)
     }
 
     fn parse_doc(&mut self, input: ParseStream) -> Result<()> {
@@ -259,6 +268,20 @@ impl ArgList {
 
         self.field_attrs = Some(span);
         self.list.push(Arg::FieldAttrs(field_attrs));
+
+        Ok(())
+    }
+
+    fn parse_from(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(from_span) = self.from {
+            return ArgList::already_defined_error(input, "from", from_span);
+        }
+
+        let span = input.span();
+        input.parse::<kw::from>()?;
+
+        self.from = Some(span);
+        self.list.push(Arg::From(true));
 
         Ok(())
     }
@@ -408,6 +431,7 @@ impl From<ArgList> for Args {
                 Attrs(attrs) => args.attrs = Some(attrs),
                 FieldDocs(field_doc) => args.field_doc = field_doc,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
+                From(from) => args.from = from,
             }
         }
 
@@ -451,6 +475,7 @@ mod tests {
     duplicate_arg_panics_test!(attrs, "attrs already defined");
     duplicate_arg_panics_test!(field_doc, "field_doc already defined");
     duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
+    duplicate_arg_panics_test!(from, "from already defined");
 
     macro_rules! struct_name_not_first_panics {
         ($attr:meta) => {
@@ -473,6 +498,7 @@ mod tests {
     struct_name_not_first_panics!(attrs);
     struct_name_not_first_panics!(field_doc);
     struct_name_not_first_panics!(field_attrs);
+    struct_name_not_first_panics!(from);
 
     #[test]
     #[should_panic(expected = "expected opt struct name")]
@@ -518,6 +544,7 @@ mod tests {
         assert_eq!(args.attrs, None);
         assert_eq!(args.field_doc, false);
         assert_eq!(args.field_attrs, None);
+        assert_eq!(args.from, false);
     }
 
     #[test]
@@ -697,5 +724,15 @@ mod tests {
 
             assert_eq!(args.field_attrs, Some(attrs));
         }
+    }
+
+    #[test]
+    fn parse_from() {
+        let args = parse_args(quote! {
+            Opt,
+            from
+        });
+
+        assert!(args.from);
     }
 }

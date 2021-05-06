@@ -20,7 +20,7 @@ cargo add optfield
 _or_ add to `Cargo.toml`:
 ```toml
 [dependencies]
-optfield = "0.1.0"
+optfield = "0.2.0"
 ```
 
 ### Use

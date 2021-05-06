@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/optfield/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/optfield/0.2.0")]
 
 //! `optfield` is a macro that, given a struct, generates another struct with
 //! the same fields, but wrapped in `Option<T>`.

@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{parse2, Field, Fields, ItemStruct, Path, Type, TypePath};
+use syn::{parse2, Field, Fields, Ident, ItemStruct, Path, Type, TypePath};
 
 use crate::args::Args;
 use crate::error::unexpected;
@@ -8,7 +8,8 @@ mod attrs;
 
 const OPTION: &str = "Option";
 
-/// Wraps item fields in Option.
+/// Wraps item fields in Option. If rewrite options are set it also performs
+/// that change.
 pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
     let item_name = item.ident.clone();
 
@@ -22,10 +23,15 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
             continue;
         }
 
+        let rename = find_rename(field, args);
         let ty = &field.ty;
 
-        let opt_type = quote! {
-            Option<#ty>
+        let opt_type = if let Some(r) = rename {
+            quote! { #r }
+        } else {
+            quote! {
+                Option<#ty>
+            }
         };
 
         field.ty = parse2(opt_type).unwrap_or_else(|e| {
@@ -52,6 +58,34 @@ pub fn is_option(field: &Field) -> bool {
             }
         }
         _ => false,
+    }
+}
+
+pub fn find_rename(field: &Field, args: &Args) -> Option<Ident> {
+    let rewrites = if let Some(r) = &args.renames {
+        &r.0
+    } else {
+        return None;
+    };
+
+    match &field.ty {
+        Type::Path(TypePath {
+            path: Path { segments, .. },
+            ..
+        }) => {
+            if let Some(segment) = segments.first() {
+                for (from, to) in rewrites {
+                    if segment.ident == *from {
+                        return Some(to.clone());
+                    }
+                }
+
+                None
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 
@@ -129,6 +163,35 @@ mod tests {
             quote! {Option<Option<i128>>},
             quote! {Option<T>},
             quote! {Option<Option<T>>},
+        ]);
+
+        let generated = generate(&item, &args);
+
+        assert_eq!(field_types(generated), expected_types);
+    }
+
+    #[test]
+    fn with_renames() {
+        let (item, args) = parse_item_and_args(
+            quote! {
+                struct S<T> {
+                    text: AnotherStruct,
+                    number: Option<i128>,
+                    generic: T,
+                    optional_generic: Option<T>
+                }
+            },
+            quote! {
+                Opt,
+                renames = (AnotherStruct = OptAnotherStruct)
+            },
+        );
+
+        let expected_types = parse_types(vec![
+            quote! {OptAnotherStruct},
+            quote! {Option<i128>},
+            quote! {Option<T>},
+            quote! {Option<T>},
         ]);
 
         let generated = generate(&item, &args);

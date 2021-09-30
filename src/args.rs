@@ -12,6 +12,7 @@ mod kw {
     syn::custom_keyword!(field_doc);
     syn::custom_keyword!(field_attrs);
     syn::custom_keyword!(from);
+    syn::custom_keyword!(renames);
 
     pub mod attrs_sub {
         syn::custom_keyword!(add);
@@ -28,6 +29,7 @@ pub struct Args {
     pub field_doc: bool,
     pub field_attrs: Option<Attrs>,
     pub from: bool,
+    pub renames: Option<Renames>,
 }
 
 enum Arg {
@@ -38,6 +40,7 @@ enum Arg {
     FieldDocs(bool),
     FieldAttrs(Attrs),
     From(bool),
+    Renames(Renames),
 }
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -88,7 +91,14 @@ struct ArgList {
     field_attrs: Option<Span>,
     from: Option<Span>,
     list: Vec<Arg>,
+    renames: Option<Span>,
 }
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct Renames(pub Vec<(Ident, Ident)>);
+
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct RenameList(Vec<(Ident, Ident)>);
 
 impl Parse for Args {
     fn parse(input: ParseStream) -> Result<Self> {
@@ -135,6 +145,8 @@ impl Parse for ArgList {
                 arg_list.parse_field_attrs(input)?;
             } else if lookahead.peek(kw::from) {
                 arg_list.parse_from(input)?;
+            } else if lookahead.peek(kw::renames) {
+                arg_list.parse_renames(input)?;
             } else {
                 return Err(lookahead.error());
             }
@@ -155,6 +167,7 @@ impl Args {
             field_doc: false,
             field_attrs: None,
             from: false,
+            renames: None,
         }
     }
 }
@@ -171,6 +184,7 @@ impl ArgList {
             field_attrs: None,
             from: None,
             list: Vec::with_capacity(6),
+            renames: None,
         }
     }
 
@@ -182,6 +196,7 @@ impl ArgList {
             || input.peek(kw::field_attrs)
             || input.peek(kw::attrs)
             || input.peek(kw::from)
+            || input.peek(kw::renames)
     }
 
     fn parse_doc(&mut self, input: ParseStream) -> Result<()> {
@@ -282,6 +297,21 @@ impl ArgList {
 
         self.from = Some(span);
         self.list.push(Arg::From(true));
+
+        Ok(())
+    }
+
+    fn parse_renames(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(renames_span) = self.renames {
+            return ArgList::already_defined_error(input, "renames", renames_span);
+        }
+
+        let span = input.span();
+        input.parse::<kw::renames>()?;
+        let renames: Renames = input.parse()?;
+
+        self.renames = Some(span);
+        self.list.push(Arg::Renames(renames));
 
         Ok(())
     }
@@ -417,6 +447,44 @@ impl Parse for AttrList {
     }
 }
 
+impl Renames {
+    fn parse_rename_list(input: ParseStream) -> Result<Vec<(Ident, Ident)>> {
+        let group: Group = input.parse()?;
+
+        let pairs: RenameList = parse2(group.stream())?;
+        Ok(pairs.0)
+    }
+}
+
+impl Parse for Renames {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse::<Eq>()?;
+        let list = Renames::parse_rename_list(input)?;
+
+        Ok(Self(list))
+    }
+}
+
+impl Parse for RenameList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut pairs = Vec::new();
+
+        while !input.is_empty() {
+            let from: Ident = input.parse()?;
+            input.parse::<Eq>()?;
+            let to: Ident = input.parse()?;
+
+            pairs.push((from, to));
+
+            if input.peek(Comma) {
+                input.parse::<Comma>()?;
+            }
+        }
+
+        Ok(Self(pairs))
+    }
+}
+
 impl From<ArgList> for Args {
     fn from(arg_list: ArgList) -> Args {
         use Arg::*;
@@ -432,6 +500,7 @@ impl From<ArgList> for Args {
                 FieldDocs(field_doc) => args.field_doc = field_doc,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
                 From(from) => args.from = from,
+                Renames(pairs) => args.renames = Some(pairs),
             }
         }
 
@@ -734,5 +803,22 @@ mod tests {
         });
 
         assert!(args.from);
+    }
+
+    #[test]
+    fn parse_rewrite() {
+        let parser = Renames::parse_rename_list;
+
+        let args = parse_args(quote! {
+            Opt,
+            renames = (Substruct = OptSubstruct, Substruct2 = OptSubstruct2)
+        });
+        let renames = Renames(
+            parser
+                .parse2(quote! {(Substruct = OptSubstruct, Substruct2 = OptSubstruct2)})
+                .unwrap(),
+        );
+
+        assert_eq!(args.renames, Some(renames));
     }
 }

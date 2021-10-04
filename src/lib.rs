@@ -439,6 +439,9 @@
 //! * custom visibility (default is private): `merge_fn = pub(crate)`
 //! * both: `merge_fn = pub my_merge_fn`
 //!
+//! Note that if you use `merge_fn` in combination with `renames`, all the merge
+//! functions for those types must have the same name.
+//!
 //! # From
 //! When the `from` argument is used, `From<MyStruct>` is implemented for `Opt`.
 //! ```

@@ -152,3 +152,50 @@ fn merge_tuple_struct() {
     assert_eq!(original_clone.0, opt4.0.unwrap());
     assert_eq!(original_clone.1, opt4.1.unwrap());
 }
+
+#[test]
+fn merge_structs_with_rename() {
+    #[optfield(OptAnotherStruct, merge_fn)]
+    #[derive(Clone, Debug, PartialEq)]
+    struct AnotherStruct(String);
+
+    #[optfield(OptYetAnotherStruct, merge_fn)]
+    #[derive(Clone, Debug, PartialEq)]
+    struct YetAnotherStruct(u32);
+
+    #[optfield(
+        Opt, merge_fn,
+        renames = (
+            AnotherStruct = OptAnotherStruct,
+            YetAnotherStruct = OptYetAnotherStruct,
+        )
+    )]
+    #[derive(Clone, Debug, PartialEq)]
+    struct Original {
+        my_integer: i32,
+        another_struct: AnotherStruct,
+        yet_another_struct: YetAnotherStruct,
+    }
+
+    let original = Original {
+        my_integer: 3,
+        another_struct: AnotherStruct("original".to_string()),
+        yet_another_struct: YetAnotherStruct(5),
+    };
+    let mut original_clone = original.clone();
+
+    let opt = Opt {
+        my_integer: Some(42),
+        another_struct: OptAnotherStruct(Some("foo".to_string())),
+        yet_another_struct: OptYetAnotherStruct(None),
+    };
+
+    original_clone.merge_opt(opt);
+
+    assert_eq!(original_clone.my_integer, 42);
+    assert_eq!(
+        original_clone.another_struct,
+        AnotherStruct("foo".to_string())
+    );
+    assert_eq!(original_clone.yet_another_struct, YetAnotherStruct(5));
+}

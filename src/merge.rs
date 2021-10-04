@@ -22,7 +22,7 @@ pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenS
         let opt_name = &opt_item.ident;
         let opt_generics = &opt_item.generics;
 
-        let fields = field_bindings(&item.fields, args);
+        let fields = field_bindings(&item.fields, args, &fn_name);
 
         quote! {
             impl#item_generics #item_name#item_generics {
@@ -36,7 +36,7 @@ pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenS
     }
 }
 
-fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
+fn field_bindings(fields: &Fields, args: &Args, fn_name: &Ident) -> TokenStream {
     let mut tokens = TokenStream::new();
 
     for (i, field) in fields.iter().enumerate() {
@@ -55,6 +55,10 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
                 if opt.#field_name.is_some() {
                     self.#field_name = opt.#field_name;
                 }
+            }
+        } else if fields::find_rename(field, args).is_some() {
+            quote! {
+                self.#field_name.#fn_name(opt.#field_name);
             }
         } else {
             quote! {

@@ -354,6 +354,43 @@
 //! }
 //! ```
 //!
+//! # Field Type Renaming
+//! You can change which types will be used in the output in order to support
+//! embedded structures which also go through `optfield`.
+//!
+//! ```
+//! # use optfield::*;
+//!
+//! #[optfield(OptAnotherStruct)]
+//! struct AnotherStruct(String);
+//! #[optfield(OptYetAnotherStruct)]
+//! struct YetAnotherStruct(u32);
+//!
+//! #[optfield(
+//!     Opt,
+//!     renames = (
+//!         AnotherStruct = OptAnotherStruct,
+//!         YetAnotherStruct = OptYetAnotherStruct
+//!     )
+//! )]
+//! struct MyStruct {
+//!     other_struct: AnotherStruct,
+//!     yet_another_struct: YetAnotherStruct,
+//!     my_number: i32
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! struct OptAnotherStruct(String);
+//! struct OptYetAnotherStruct(u32);
+//!
+//! struct Opt {
+//!     other_struct: OptAnotherStruct,
+//!     yet_another_struct: OptYetAnotherStruct,
+//!     my_number: Option<i32>
+//! }
+//! ```
+//!
 //! # Merging
 //! When the  `merge_fn` argument is used `optfield` will add a method to the
 //! original struct that merges an opt struct back into the original.

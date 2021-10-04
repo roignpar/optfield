@@ -44,8 +44,9 @@ struct Opt<T> {
 }
 ```
 
-`optfield` supports defining visibility, documentation, attributes and merge
-methods. For more details and examples check its [documentation].
+`optfield` supports defining visibility, documentation, attributes, renaming
+types and merge methods. For more details and examples check its
+[documentation].
 
 ### License
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE)

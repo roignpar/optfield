@@ -18,7 +18,7 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
         field.attrs = attrs::generate(field, args);
         attrs::generate(field, args);
 
-        if is_option(&field) && !args.rewrap {
+        if is_option(field) && !args.rewrap {
             continue;
         }
 

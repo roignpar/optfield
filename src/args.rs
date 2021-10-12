@@ -104,7 +104,7 @@ impl Parse for ArgList {
             return Err(input.error("expected opt struct name"));
         }
 
-        if ArgList::next_is_kw(&input) {
+        if ArgList::next_is_kw(input) {
             return Err(input.error("first argument must be opt struct name"));
         }
 
@@ -122,19 +122,19 @@ impl Parse for ArgList {
             let lookahead = input.lookahead1();
 
             if lookahead.peek(kw::doc) {
-                arg_list.parse_doc(&input)?;
+                arg_list.parse_doc(input)?;
             } else if lookahead.peek(kw::merge_fn) {
-                arg_list.parse_merge(&input)?;
+                arg_list.parse_merge(input)?;
             } else if lookahead.peek(kw::rewrap) {
-                arg_list.parse_rewrap(&input)?;
+                arg_list.parse_rewrap(input)?;
             } else if lookahead.peek(kw::attrs) {
-                arg_list.parse_attrs(&input)?;
+                arg_list.parse_attrs(input)?;
             } else if lookahead.peek(kw::field_doc) {
-                arg_list.parse_field_doc(&input)?;
+                arg_list.parse_field_doc(input)?;
             } else if lookahead.peek(kw::field_attrs) {
-                arg_list.parse_field_attrs(&input)?;
+                arg_list.parse_field_attrs(input)?;
             } else if lookahead.peek(kw::from) {
-                arg_list.parse_from(&input)?;
+                arg_list.parse_from(input)?;
             } else {
                 return Err(lookahead.error());
             }

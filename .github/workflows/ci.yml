@@ -12,12 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Run cargo fmt
+        uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt
+        run: cargo fmt -- --check
 
-      - run: cargo fmt -- --check
-      - run: clippy -- -D warnings
+      - name: Run clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+        run: clippy -- -D warnings
+
 
   check:
     name: Run cargo check with ${{ matrix.rust }} on ${{ matrix.os }}
@@ -40,7 +46,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo check
+        run: cargo check
 
   test:
     name: Run tests with ${{ matrix.rust }} on ${{ matrix.os }}
@@ -63,4 +69,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust}}
-      - run: cargo test
+        run: cargo test

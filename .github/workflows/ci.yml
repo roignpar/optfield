@@ -51,6 +51,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - if: matrix.os == 'macos-latest' && matrix.rust == '1.33.0'
+        run: echo -e '[target.x86_64-apple-darwin]\nrustflags=["-C","link-arg=-undefined","-C","link-arg=dynamic_lookup"]' >> $HOME/.cargo/config.toml
       - run: cargo check
 
   test:

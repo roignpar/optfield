@@ -14,16 +14,16 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-quote = "1.0.3"
-proc-macro2 = "1.0.10"
+quote = "1.0.27"
+proc-macro2 = "1.0.56"
 
 [dependencies.syn]
-version = "1.0.17"
+version = "1.0.109"
 features = ["full", "extra-traits"]
 
 [dev-dependencies]
-paste = "0.1.10"
+paste = "1.0.12"
 
 [dev-dependencies.serde]
-version = "1.0.106"
+version = "1.0.163"
 features = ["derive"]

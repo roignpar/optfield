@@ -291,8 +291,8 @@ impl ArgList {
         arg_name: &'static str,
         prev_span: Span,
     ) -> Result<()> {
-        let mut e = input.error(&format!("{} already defined", arg_name));
-        e.combine(Error::new(prev_span, &format!("{} defined here", arg_name)));
+        let mut e = input.error(format!("{} already defined", arg_name));
+        e.combine(Error::new(prev_span, format!("{} defined here", arg_name)));
         Err(e)
     }
 }

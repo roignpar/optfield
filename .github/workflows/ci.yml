@@ -20,6 +20,7 @@ jobs:
 
   clippy:
     name: Run clippy
+    needs: [fmt]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +33,7 @@ jobs:
 
   check:
     name: Run cargo check with ${{ matrix.rust }} on ${{ matrix.os }}
-    needs: [lint]
+    needs: [clippy]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

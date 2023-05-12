@@ -28,8 +28,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - run: clippy -- -D warnings
-
+      - run: cargo clippy -- -D warnings
 
   check:
     name: Run cargo check with ${{ matrix.rust }} on ${{ matrix.os }}

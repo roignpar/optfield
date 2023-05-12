@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/optfield.svg)][crate]
 [![Released API docs](https://docs.rs/optfield/badge.svg)][documentation]
 [![Minimum rustc version](https://img.shields.io/badge/rustc-1.33%2B-informational)][rustc]
-[![CI](https://img.shields.io/github/workflow/status/roignpar/optfield/CI)][ci]
+[![CI](https://img.shields.io/github/actions/workflow/status/roignpar/optfield/ci.yml?branch=main)][ci]
 
 `optfield` is a macro that, given a struct, generates another struct with
 the same fields, but wrapped in `Option<T>`.

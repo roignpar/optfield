@@ -3,6 +3,17 @@
 //! `optfield` is a macro that, given a struct, generates another struct with
 //! the same fields, but wrapped in `Option<T>`.
 //!
+//! Features:
+//! * [Simple examples](#simple-examples)
+//! * [Visibility](#visibility)
+//! * [Rewrapping `Option` fields](#rewrapping-option-fields)
+//! * [Documentation](#documentation)
+//! * [Attributes](#attributes)
+//! * [Field documentation](#field-documentation)
+//! * [Field attributes](#field-attributes)
+//! * [Merging](#merging)
+//! * [From](#from)
+//!
 //! # Simple examples
 //! The first argument is the name of the generated struct:
 //! ```

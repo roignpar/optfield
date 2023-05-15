@@ -8,7 +8,7 @@
 `optfield` is a macro that, given a struct, generates another struct with
 the same fields, but wrapped in `Option<T>`.
 
-__Minimum rustc version: `1.33.0`__
+__Minimum rustc version: `1.56.0`__
 
 ### Install
 

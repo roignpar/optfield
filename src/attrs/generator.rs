@@ -35,11 +35,6 @@ pub trait AttrGenerator {
         }
     }
 
-    fn parse_meta(&self, attr: &Attribute) -> Meta {
-        attr.parse_meta()
-            .unwrap_or_else(|e| panic!("{}", error::unexpected(self.error_action_text(), e)))
-    }
-
     fn generate(&self) -> Vec<Attribute> {
         use Attrs::*;
 
@@ -65,14 +60,12 @@ pub trait AttrGenerator {
                 }
             }
 
-            if attr.path.is_ident(OPT_ATTR) {
+            if attr.path().is_ident(OPT_ATTR) {
                 add_attr = false
             }
 
             if add_attr {
-                let meta = self.parse_meta(attr);
-
-                new_attrs.push(meta);
+                new_attrs.push(attr.meta.clone());
             }
         }
 
@@ -91,5 +84,5 @@ pub trait AttrGenerator {
 }
 
 pub fn is_doc_attr(attr: &Attribute) -> bool {
-    attr.path.is_ident(DOC)
+    attr.path().is_ident(DOC)
 }

@@ -11,16 +11,8 @@ the same fields, but wrapped in `Option<T>`.
 __Minimum rustc version: `1.56.0`__
 
 ### Install
-
-Add with [cargo edit]:
 ```
 cargo add optfield
-```
-
-_or_ add to `Cargo.toml`:
-```toml
-[dependencies]
-optfield = "0.2.0"
 ```
 
 ### Use
@@ -55,4 +47,3 @@ or [MIT](LICENSE-MIT) at your option.
 [documentation]: https://docs.rs/optfield
 [rustc]: https://blog.rust-lang.org/2019/02/28/Rust-1.33.0.html
 [ci]: https://github.com/roignpar/optfield/actions?query=workflow%3ACI
-[cargo edit]: https://github.com/killercup/cargo-edit

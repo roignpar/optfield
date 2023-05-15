@@ -209,6 +209,21 @@
 //!     text: Option<String>
 //! }
 //! ```
+//! **NOTE** on attribute order: `optfield`, like any other proc macro, only
+//! sees the attributes defined after it:
+//!
+//! ```
+//! # use optfield::*;
+//! #[derive(Clone)] // optfield is unaware of this attribute
+//! #[optfield(Opt, attrs)]
+//! #[derive(Debug)]
+//! struct MyStruct;
+//! ```
+//! Will generate:
+//! ```
+//! #[derive(Debug)]
+//! struct Opt;
+//! ```
 //!
 //! # Field documentation
 //! By default, field documentation is removed:

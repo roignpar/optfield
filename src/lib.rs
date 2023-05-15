@@ -225,7 +225,7 @@
 //!
 //! ```
 //! # use optfield::*;
-//! #[derive(Clone)] // optfield is unaware of this attribute
+//! #[cfg(test)] // optfield is unaware of this attribute
 //! #[optfield(Opt, attrs)]
 //! #[derive(Debug)]
 //! struct MyStruct;

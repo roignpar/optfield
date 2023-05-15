@@ -1,6 +1,6 @@
 [package]
 name = "optfield"
-version = "0.2.0" # remember to update html_root_url and README
+version = "0.3.0" # remember to update html_root_url and README
 license = "MIT OR Apache-2.0"
 description = "A macro that generates structs with optional fields"
 repository = "https://github.com/roignpar/optfield"

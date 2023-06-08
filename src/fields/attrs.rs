@@ -24,7 +24,7 @@ impl<'a> FieldAttrGen<'a> {
             .field
             .attrs
             .iter()
-            .filter_map(|attr| is_optfield_field_attr(attr).then(|| &attr.meta));
+            .filter_map(|attr| is_optfield_field_attr(attr).then_some(&attr.meta));
 
         let attr = match optfield_field_attrs_it.next() {
             Some(attr) => attr,

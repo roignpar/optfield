@@ -67,10 +67,10 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
             .iter()
             .filter_map(|attr| (!is_doc_attr(attr)).then(|| attr.meta.clone()));
 
-        let attr_attrs_arg = self.optfield_args().and_then(|args| args.attrs);
+        let field_attrs_arg = self.optfield_args().and_then(|args| args.attrs);
 
         // field arg overrides struct arg
-        match (struct_attrs_arg, attr_attrs_arg) {
+        match (struct_attrs_arg, field_attrs_arg) {
             // no attributes
             (None, None) => vec![],
             // keep original
@@ -99,10 +99,10 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
             .iter()
             .filter_map(|attr| is_doc_attr(attr).then(|| attr.meta.clone()));
 
-        let attr_doc_arg = self.optfield_args().and_then(|args| args.doc);
+        let field_doc_arg = self.optfield_args().and_then(|args| args.doc);
 
         // field arg overrides struct arg
-        match (struct_doc_arg, attr_doc_arg) {
+        match (struct_doc_arg, field_doc_arg) {
             // no docs
             (false, None) => vec![],
             // keep original

@@ -20,11 +20,13 @@ impl<'a> FieldAttrGen<'a> {
 
     /// Get the #[optfield(...)] args on this field, if the attribute exists.
     fn optfield_args(&self) -> Option<FieldArgs> {
-        let mut optfield_field_attrs_it = self
-            .field
-            .attrs
-            .iter()
-            .filter_map(|attr| is_optfield_field_attr(attr).then_some(&attr.meta));
+        let mut optfield_field_attrs_it = self.field.attrs.iter().filter_map(|attr| {
+            if is_optfield_field_attr(attr) {
+                Some(&attr.meta)
+            } else {
+                None
+            }
+        });
 
         let attr = match optfield_field_attrs_it.next() {
             Some(attr) => attr,

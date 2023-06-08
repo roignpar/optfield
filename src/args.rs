@@ -3,7 +3,7 @@ use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::token::{Comma, Eq, Pub};
 use syn::{parse2, Ident, LitStr, Meta, Visibility};
 
-mod kw {
+pub mod kw {
     // NOTE: when adding new keywords update ArgList::next_is_kw
     syn::custom_keyword!(doc);
     syn::custom_keyword!(merge_fn);
@@ -12,6 +12,10 @@ mod kw {
     syn::custom_keyword!(field_doc);
     syn::custom_keyword!(field_attrs);
     syn::custom_keyword!(from);
+
+    pub mod doc_sub {
+        syn::custom_keyword!(append);
+    }
 
     pub mod attrs_sub {
         syn::custom_keyword!(add);
@@ -60,8 +64,12 @@ pub enum MergeFnName {
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum Doc {
-    Same,
-    Custom(String),
+    /// Keep the same documentation.
+    Keep,
+    /// Replace with custom documentation.
+    Replace(String),
+    /// Append additional documentation.
+    Append(String),
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
@@ -327,11 +335,18 @@ impl Parse for Doc {
         if input.peek(Eq) {
             input.parse::<Eq>()?;
 
-            let doc_text: LitStr = input.parse()?;
+            if input.peek(kw::doc_sub::append) {
+                input.parse::<kw::doc_sub::append>()?;
 
-            Ok(Doc::Custom(doc_text.value()))
+                let group: Group = input.parse()?;
+                let doc_text: LitStr = parse2(group.stream())?;
+                Ok(Doc::Append(doc_text.value()))
+            } else {
+                let doc_text: LitStr = input.parse()?;
+                Ok(Doc::Replace(doc_text.value()))
+            }
         } else {
-            Ok(Doc::Same)
+            Ok(Doc::Keep)
         }
     }
 }
@@ -617,10 +632,14 @@ mod tests {
     #[test]
     fn parse_doc() {
         let cases = vec![
-            (quote! {Opt, doc}, Doc::Same),
+            (quote! {Opt, doc}, Doc::Keep),
             (
                 quote! {Opt, doc = "custom docs"},
-                Doc::Custom("custom docs".to_string()),
+                Doc::Replace("custom docs".to_string()),
+            ),
+            (
+                quote! {Opt, doc = append("append docs")},
+                Doc::Append("append docs".to_string()),
             ),
         ];
 

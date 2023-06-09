@@ -56,7 +56,7 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
         format!("generating {}field attrs", field_name)
     }
 
-    fn new_attrs_except_docs(&self) -> Vec<Meta> {
+    fn new_non_doc_attrs(&self) -> Vec<Meta> {
         use Attrs::*;
 
         let struct_attrs_arg = &self.args.field_attrs;
@@ -88,7 +88,7 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
         }
     }
 
-    fn new_docs(&self) -> Vec<Meta> {
+    fn new_doc_attrs(&self) -> Vec<Meta> {
         use Doc::*;
 
         let struct_doc_arg = self.args.field_doc;

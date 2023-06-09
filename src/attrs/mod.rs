@@ -25,7 +25,7 @@ impl<'a> AttrGenerator for AttrGen<'a> {
         format!("generating {} attrs", self.item.ident)
     }
 
-    fn new_attrs_except_docs(&self) -> Vec<Meta> {
+    fn new_non_doc_attrs(&self) -> Vec<Meta> {
         use Attrs::*;
 
         let original_attrs_it = self
@@ -45,7 +45,7 @@ impl<'a> AttrGenerator for AttrGen<'a> {
         }
     }
 
-    fn new_docs(&self) -> Vec<Meta> {
+    fn new_doc_attrs(&self) -> Vec<Meta> {
         use Doc::*;
 
         let original_doc_it = self

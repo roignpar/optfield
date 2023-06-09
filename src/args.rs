@@ -22,7 +22,7 @@ pub mod kw {
     }
 }
 
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(PartialEq)]
 pub struct Args {
     pub item: GenItem,
     pub merge: Option<MergeFn>,
@@ -44,25 +44,25 @@ enum Arg {
     From(bool),
 }
 
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug, PartialEq)]
 pub struct GenItem {
     pub name: Ident,
     pub visibility: Option<Visibility>,
 }
 
-#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MergeFn {
     pub visibility: Visibility,
     pub name: MergeFnName,
 }
 
-#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MergeFnName {
     Default,
     Custom(Ident),
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, PartialEq)]
 pub enum Doc {
     /// Keep the same documentation.
     Keep,
@@ -72,7 +72,7 @@ pub enum Doc {
     Append(String),
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, PartialEq)]
 pub enum Attrs {
     /// Keep same attributes.
     Keep,

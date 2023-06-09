@@ -22,7 +22,7 @@ pub mod kw {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Args {
     pub item: GenItem,
     pub merge: Option<MergeFn>,
@@ -34,6 +34,7 @@ pub struct Args {
     pub from: bool,
 }
 
+#[derive(Debug)]
 enum Arg {
     Merge(MergeFn),
     Doc(Doc),
@@ -86,6 +87,7 @@ pub enum Attrs {
 pub struct AttrList(Vec<Meta>);
 
 /// Parser for unordered args.
+#[derive(Debug)]
 struct ArgList {
     item: GenItem,
     merge: Option<Span>,

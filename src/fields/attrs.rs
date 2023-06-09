@@ -8,6 +8,7 @@ use crate::fields::args::FieldArgs;
 
 const OPTFIELD_FIELD_ATTR_NAME: &str = "optfield";
 
+#[derive(Debug)]
 struct FieldAttrGen<'a> {
     field: &'a Field,
     args: &'a Args,

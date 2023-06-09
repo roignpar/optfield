@@ -8,6 +8,7 @@ use syn::{
 use crate::args::{kw, Attrs, Doc};
 
 /// Args declared on a field.
+#[derive(Debug)]
 pub struct FieldArgs {
     pub doc: Option<Doc>,
     pub attrs: Option<Attrs>,
@@ -28,12 +29,14 @@ impl FieldArgs {
     }
 }
 
+#[derive(Debug)]
 enum FieldArg {
     Doc(Doc),
     Attrs(Attrs),
 }
 
 /// Parser for unordered args on a field.
+#[derive(Debug)]
 struct FieldArgList {
     doc: Option<Span>,
     attrs: Option<Span>,

@@ -9,6 +9,7 @@ pub mod generator;
 
 use generator::AttrGenerator;
 
+#[derive(Debug)]
 struct AttrGen<'a> {
     item: &'a ItemStruct,
     args: &'a Args,

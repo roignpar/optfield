@@ -4,8 +4,8 @@ use syn::{parse2, Field, Fields, ItemStruct, Path, Type, TypePath};
 use crate::args::Args;
 use crate::error::unexpected;
 
-mod args;
-mod attrs;
+pub mod args;
+pub mod attrs;
 
 const OPTION: &str = "Option";
 

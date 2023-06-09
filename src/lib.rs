@@ -500,13 +500,6 @@ mod test_util {
         (parse_item(item_tokens), parse_struct_args(args_tokens))
     }
 
-    pub fn parse_field_and_args(
-        field_tokens: TokenStream,
-        args_tokens: TokenStream,
-    ) -> (Field, Args) {
-        (parse_field(field_tokens), parse_struct_args(args_tokens))
-    }
-
     pub fn parse_item(tokens: TokenStream) -> ItemStruct {
         parse2(tokens).unwrap()
     }
@@ -564,10 +557,6 @@ mod test_util {
     }
 
     pub fn doc_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
-        attrs
-            .iter()
-            .filter(|a| is_doc_attr(a))
-            .map(|a| a.clone())
-            .collect()
+        attrs.iter().filter(|a| is_doc_attr(a)).cloned().collect()
     }
 }

@@ -66,6 +66,8 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
             .field
             .attrs
             .iter()
+            // #[optfield(..)] attributes do not need to be regenerated
+            .filter(|attr| !is_optfield_field_attr(attr))
             .filter_map(|attr| (!is_doc_attr(attr)).then(|| attr.meta.clone()));
 
         let field_attrs_arg = self.optfield_args().and_then(|args| args.attrs);
@@ -140,189 +142,193 @@ pub fn is_optfield_field_attr(attr: &Attribute) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
+    use proc_macro2::{Ident, Span, TokenStream};
     use quote::quote;
+    use rstest::{fixture, rstest};
 
     use crate::test_util::*;
 
-    #[test]
-    fn remove_docs() {
-        let field = parse_field(quote! {
+    #[fixture]
+    fn field() -> Field {
+        parse_field(quote! {
             /// some
             /// doc
             /// lines
             #[attr]
             field: i32
-        });
+        })
+    }
 
-        let cases = vec![
-            quote! {
-                Opt
+    /// Shared impl for expected results.
+    trait ExpectedAttrs {
+        fn into_expected_attrs(self) -> HashSet<Attribute>;
+        /// Chain multiple possibly-indeterminate expected results.
+        ///
+        /// Similar to [`Option::or`].
+        fn or(self, other: Self) -> Self;
+    }
 
-            },
-            quote! {
-                Opt,
-                field_attrs
-            },
-            quote! {
-                Opt,
-                field_attrs = (new_attr)
-            },
-            quote! {
-                Opt,
-                field_attrs = add(new_attr)
-            },
-        ];
+    /// The possible expected generated attributes for [`test_field_doc_attrs_only`].
+    #[derive(Debug, Copy, Clone)]
+    enum ExpectedDocAttrs {
+        Unknown,
+        Discarded,
+        Kept,
+        Replaced,
+        Appended,
+    }
+    impl ExpectedAttrs for ExpectedDocAttrs {
+        fn into_expected_attrs(self) -> HashSet<Attribute> {
+            use ExpectedDocAttrs::*;
 
-        let item_docs = doc_attrs(&field.attrs);
+            // we are only testing for doc attributes
+            let base_it = field().attrs.into_iter().filter(|a| is_doc_attr(a));
 
-        for case in cases {
-            let args = parse_struct_args(case);
-
-            let generated = generate(&field, &args);
-
-            assert!(!attrs_contain_any(&generated, &item_docs));
+            match self {
+                Unknown => unreachable!("The expected doc attributes depend on other factors"),
+                Discarded => HashSet::new(),
+                Kept => base_it.collect(),
+                Replaced => std::iter::once(parse_attr(quote!(#[doc = "replaced"]))).collect(),
+                Appended => base_it
+                    .chain(std::iter::once(parse_attr(quote!(#[doc = "appended"]))))
+                    .collect(),
+            }
+        }
+        fn or(self, other: Self) -> Self {
+            use ExpectedDocAttrs::*;
+            match self {
+                Unknown => other,
+                Discarded | Kept | Replaced | Appended => self,
+            }
         }
     }
 
-    #[test]
-    fn keep_docs() {
-        let field = parse_field(quote! {
-            /// field
-            /// with
-            /// docs
-            #[attr]
-            field: String
-        });
+    /// The possible expected generated attributes for [`test_field_non_doc_attrs_only`].
+    #[derive(Debug, Copy, Clone)]
+    enum ExpectedNonDocAttrs {
+        Unknown,
+        Discarded,
+        KeptByStruct,
+        KeptByField,
+        ReplacedByStruct,
+        ReplacedByField,
+        AddedByStruct,
+        AddedByField,
+    }
+    impl ExpectedAttrs for ExpectedNonDocAttrs {
+        fn into_expected_attrs(self) -> HashSet<Attribute> {
+            use ExpectedNonDocAttrs::*;
 
-        let cases = vec![
-            quote! {
-                Opt,
-                field_doc
-            },
-            quote! {
-                Opt,
-                field_doc,
-                field_attrs
-            },
-            quote! {
-                Opt,
-                field_doc,
-                field_attrs = (new_attr)
-            },
-            quote! {
-                Opt,
-                field_doc,
-                field_attrs = add(new_attr)
-            },
-        ];
+            // we are only testing for non-doc attributes
+            let base_it = field().attrs.into_iter().filter(|a| !is_doc_attr(a));
 
-        let item_docs = doc_attrs(&field.attrs);
-
-        for case in cases {
-            let args = parse_struct_args(case);
-
-            let generated = generate(&field, &args);
-
-            assert!(attrs_contain_all(&generated, &item_docs));
+            match self {
+                Unknown => unreachable!("The expected non-doc attributes depend on other factors"),
+                Discarded => HashSet::new(),
+                KeptByStruct | KeptByField => base_it.collect(),
+                ReplacedByStruct => parse_attrs(quote! {
+                    #[replaced_by_struct_0]
+                    #[replaced_by_struct_1]
+                })
+                .into_iter()
+                .collect(),
+                ReplacedByField => parse_attrs(quote! {
+                    #[replaced_by_field_0]
+                    #[replaced_by_field_1]
+                })
+                .into_iter()
+                .collect(),
+                AddedByStruct => base_it
+                    .chain(parse_attrs(quote! {
+                        #[added_by_struct_0]
+                        #[added_by_struct_1]
+                    }))
+                    .collect(),
+                AddedByField => base_it
+                    .chain(parse_attrs(quote! {
+                        #[added_by_field_0]
+                        #[added_by_field_1]
+                    }))
+                    .collect(),
+            }
+        }
+        fn or(self, other: Self) -> Self {
+            use ExpectedNonDocAttrs::*;
+            match self {
+                Unknown => other,
+                Discarded | KeptByStruct | KeptByField | ReplacedByStruct | ReplacedByField
+                | AddedByStruct | AddedByField => self,
+            }
         }
     }
 
-    #[test]
-    fn remove_attrs() {
-        let (field, args) = parse_field_and_args(
-            quote! {
-                #[some]
-                #[attrs]
-                field: String
-            },
-            quote! {
-                Opt
-            },
-        );
+    fn test_field_attrs<T>(
+        mut field: Field,
+        (struct_args, struct_expected): (TokenStream, T),
+        (field_args, field_expected): (TokenStream, T),
+    ) where
+        T: ExpectedAttrs,
+    {
+        // setup: insert field args into base field
+        let optfield_field_attr_ident = Ident::new(OPTFIELD_FIELD_ATTR_NAME, Span::call_site());
+        let optfield_field_attr = parse_attr(quote!(#[#optfield_field_attr_ident(#field_args)]));
+        field.attrs.push(optfield_field_attr);
 
-        let generated = generate(&field, &args);
+        let generated: HashSet<_> = generate(&field, &parse_struct_args(struct_args))
+            .into_iter()
+            .collect();
+        // field args override struct args
+        let expected = field_expected.or(struct_expected).into_expected_attrs();
+        dbg!(&generated, &expected);
 
-        assert!(!attrs_contain_any(&generated, &field.attrs));
+        assert_eq!(generated, expected);
     }
 
-    #[test]
-    fn keep_attrs() {
-        let (field, args) = parse_field_and_args(
-            quote! {
-                #[some]
-                #[attrs]
-                field: String
-            },
-            quote! {
-                Opt,
-                field_attrs
-            },
-        );
-
-        let generated = generate(&field, &args);
-
-        assert!(attrs_contain_all(&generated, &field.attrs));
+    #[rstest]
+    fn test_field_doc_attrs_only(
+        field: Field,
+        // .0 are the args on struct; .1 are the expected docs (unless overridden)
+        #[values(
+            (quote!(Opt), ExpectedDocAttrs::Discarded),
+            (quote!(Opt, field_doc), ExpectedDocAttrs::Kept),
+        )]
+        struct_args_pair: (TokenStream, ExpectedDocAttrs),
+        // .0 are the args on field; .1 are the expected docs (overriding)
+        #[values(
+            (quote!(), ExpectedDocAttrs::Unknown),
+            (quote!(doc), ExpectedDocAttrs::Kept),
+            (quote!(doc = "replaced"), ExpectedDocAttrs::Replaced),
+            (quote!(doc = append("appended")), ExpectedDocAttrs::Appended),
+        )]
+        field_args_pair: (TokenStream, ExpectedDocAttrs),
+    ) {
+        test_field_attrs(field, struct_args_pair, field_args_pair)
     }
 
-    #[test]
-    fn replace_attrs() {
-        let (field, args) = parse_field_and_args(
-            quote! {
-                #[some]
-                #[attrs]
-                field: String
-            },
-            quote! {
-                Opt,
-                field_attrs = (
-                    other,
-                    new,
-                    attribute
-                )
-            },
-        );
-
-        let new_attrs = parse_attrs(quote! {
-            #[other]
-            #[new]
-            #[attribute]
-        });
-
-        let generated = generate(&field, &args);
-
-        assert!(!attrs_contain_any(&generated, &field.attrs));
-        assert!(attrs_contain_all(&generated, &new_attrs));
-    }
-
-    #[test]
-    fn add_attrs() {
-        let (field, args) = parse_field_and_args(
-            quote! {
-                #[old]
-                #[attrs]
-                field: u8
-            },
-            quote! {
-                Opt,
-                field_attrs = add(
-                    new,
-                    field,
-                    attributes
-                )
-            },
-        );
-
-        let new_attrs = parse_attrs(quote! {
-            #[new]
-            #[field]
-            #[attributes]
-        });
-
-        let generated = generate(&field, &args);
-
-        assert!(attrs_contain_all(&generated, &field.attrs));
-        assert!(attrs_contain_all(&generated, &new_attrs));
+    #[rstest]
+    fn test_field_non_doc_attrs_only(
+        field: Field,
+        // .0 are the args on struct; .1 are the expected attrs (unless overridden)
+        #[values(
+            (quote!(Opt), ExpectedNonDocAttrs::Discarded),
+            (quote!(Opt, field_attrs), ExpectedNonDocAttrs::KeptByStruct),
+            (quote!(Opt, field_attrs = (replaced_by_struct_0, replaced_by_struct_1)), ExpectedNonDocAttrs::ReplacedByStruct),
+            (quote!(Opt, field_attrs = add(added_by_struct_0, added_by_struct_1)), ExpectedNonDocAttrs::AddedByStruct),
+        )]
+        struct_args_pair: (TokenStream, ExpectedNonDocAttrs),
+        // .0 are the args on field; .1 are the expected attrs (overriding)
+        #[values(
+            (quote!(), ExpectedNonDocAttrs::Unknown),
+            (quote!(attrs), ExpectedNonDocAttrs::KeptByField),
+            (quote!(attrs = (replaced_by_field_0, replaced_by_field_1)), ExpectedNonDocAttrs::ReplacedByField),
+            (quote!(attrs = add(added_by_field_0, added_by_field_1)), ExpectedNonDocAttrs::AddedByField),
+        )]
+        field_args_pair: (TokenStream, ExpectedNonDocAttrs),
+    ) {
+        test_field_attrs(field, struct_args_pair, field_args_pair)
     }
 }

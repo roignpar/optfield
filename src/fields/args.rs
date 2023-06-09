@@ -47,13 +47,6 @@ impl Parse for FieldArgList {
         let mut arg_list = FieldArgList::new();
 
         while !input.is_empty() {
-            input.parse::<Comma>()?;
-
-            // allow trailing commas
-            if input.is_empty() {
-                break;
-            }
-
             let lookahead = input.lookahead1();
 
             if lookahead.peek(kw::doc) {
@@ -62,6 +55,11 @@ impl Parse for FieldArgList {
                 arg_list.parse_attrs(input)?;
             } else {
                 return Err(lookahead.error());
+            }
+
+            // allow trailing commas
+            if !input.is_empty() {
+                input.parse::<Comma>()?;
             }
         }
 

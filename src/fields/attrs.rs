@@ -178,7 +178,7 @@ mod tests {
         let item_docs = doc_attrs(&field.attrs);
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&field, &args);
 
@@ -221,7 +221,7 @@ mod tests {
         let item_docs = doc_attrs(&field.attrs);
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&field, &args);
 

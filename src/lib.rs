@@ -497,14 +497,14 @@ mod test_util {
         item_tokens: TokenStream,
         args_tokens: TokenStream,
     ) -> (ItemStruct, Args) {
-        (parse_item(item_tokens), parse_args(args_tokens))
+        (parse_item(item_tokens), parse_struct_args(args_tokens))
     }
 
     pub fn parse_field_and_args(
         field_tokens: TokenStream,
         args_tokens: TokenStream,
     ) -> (Field, Args) {
-        (parse_field(field_tokens), parse_args(args_tokens))
+        (parse_field(field_tokens), parse_struct_args(args_tokens))
     }
 
     pub fn parse_item(tokens: TokenStream) -> ItemStruct {
@@ -515,7 +515,7 @@ mod test_util {
         Field::parse_named.parse2(tokens).unwrap()
     }
 
-    pub fn parse_args(tokens: TokenStream) -> Args {
+    pub fn parse_struct_args(tokens: TokenStream) -> Args {
         parse2(tokens).unwrap()
     }
 

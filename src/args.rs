@@ -476,7 +476,7 @@ mod tests {
                 #[test]
                 #[should_panic(expected = $expected)]
                 fn [<duplicate_ $attr _panics>]() {
-                    parse_args(quote! {
+                    parse_struct_args(quote! {
                         Opt,
                         $attr,
                         $dup
@@ -500,7 +500,7 @@ mod tests {
                 #[test]
                 #[should_panic(expected = "first argument must be opt struct name")]
                 fn [<$attr _first_panics>]() {
-                    parse_args(quote! {
+                    parse_struct_args(quote! {
                         $attr,
                         Opt
                     });
@@ -520,7 +520,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "expected opt struct name")]
     fn empty_args_panics() {
-        parse_args(TokenStream::new());
+        parse_struct_args(TokenStream::new());
     }
 
     #[test]
@@ -541,7 +541,7 @@ mod tests {
         ];
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             assert_eq!(args.item.name, "OptionalFields");
         }
@@ -549,7 +549,7 @@ mod tests {
 
     #[test]
     fn parse_no_optional_args() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt
         });
 
@@ -614,7 +614,7 @@ mod tests {
         ];
 
         for (args_tokens, fn_name, vis) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.merge.clone().unwrap().name, fn_name);
             assert_eq!(args.merge.unwrap().visibility, vis);
@@ -623,7 +623,7 @@ mod tests {
 
     #[test]
     fn parse_rewrap() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             rewrap
         });
@@ -700,7 +700,7 @@ mod tests {
         ];
 
         for (args_tokens, attrs) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.attrs, Some(attrs));
         }
@@ -708,7 +708,7 @@ mod tests {
 
     #[test]
     fn parse_field_doc() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             field_doc
         });
@@ -741,7 +741,7 @@ mod tests {
         ];
 
         for (args_tokens, attrs) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.field_attrs, Some(attrs));
         }
@@ -749,7 +749,7 @@ mod tests {
 
     #[test]
     fn parse_from() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             from
         });

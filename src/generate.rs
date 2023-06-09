@@ -102,7 +102,7 @@ mod tests {
         ];
 
         for (args_tokens, vis_tokens) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
             let vis = parse_visibility(vis_tokens);
 
             let generated = parse_item(generate(&item, args));

@@ -110,8 +110,10 @@
 //! ```
 //!
 //! # Documentation
-//! To document the opt struct, either duplicate the same documentation as the
-//! original using the `doc` argument by itself:
+//! To document the opt struct, you can:
+//!
+//! 1. duplicate the same documentation as the original using the `doc` argument
+//! by itself:
 //! ```
 //! # use optfield::*;
 //! /// My struct documentation
@@ -130,7 +132,7 @@
 //!     text: Option<String>
 //! }
 //! ```
-//! Or write custom documentation by giving `doc` a value:
+//! 2. specify custom documentation by giving `doc` a value:
 //! ```
 //! # use optfield::*;
 //! #[optfield(
@@ -148,6 +150,27 @@
 //! ```
 //! /// Custom documentation
 //! /// for Opt struct...
+//! struct Opt {
+//!     text: Option<String>
+//! }
+//! ```
+//! 3. append additional documentation using the `append` syntax:
+//! ```
+//! /// Original documentation
+//! # use optfield::*;
+//! #[optfield(
+//!     Opt,
+//!     doc = append("Additional documentation")
+//! )]
+//! struct MyStruct {
+//!     text: String
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! /// Original documentation
+//! ///
+//! /// Additional documentation
 //! struct Opt {
 //!     text: Option<String>
 //! }

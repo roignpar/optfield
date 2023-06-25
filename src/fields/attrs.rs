@@ -6,7 +6,10 @@ use crate::attrs::generator::{is_doc_attr, AttrGenerator};
 use crate::error::unexpected;
 use crate::fields::args::FieldArgs;
 
-const OPTFIELD_FIELD_ATTR_NAME: &str = "optfield";
+/// Without helper attribute support on `proc_macro_attribute`, this attribute
+/// name needs to be different from the name of the proc macro (`optfield`) to
+/// avoid namespace conflicts.
+const OPTFIELD_FIELD_ATTR_NAME: &str = "optfield_field";
 
 #[derive(Debug)]
 struct FieldAttrGen<'a> {
@@ -19,8 +22,8 @@ impl<'a> FieldAttrGen<'a> {
         Self { field, args }
     }
 
-    /// Get the #[optfield(...)] args on this field, if the attribute exists.
-    fn optfield_args(&self) -> Option<FieldArgs> {
+    /// Get the #[optfield_field(...)] args on this field, if the attribute exists.
+    fn optfield_field_args(&self) -> Option<FieldArgs> {
         let mut optfield_field_attrs_it = self.field.attrs.iter().filter_map(|attr| {
             if is_optfield_field_attr(attr) {
                 Some(&attr.meta)
@@ -70,7 +73,7 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
             .filter(|attr| !is_optfield_field_attr(attr))
             .filter_map(|attr| (!is_doc_attr(attr)).then(|| attr.meta.clone()));
 
-        let field_attrs_arg = self.optfield_args().and_then(|args| args.attrs);
+        let field_attrs_arg = self.optfield_field_args().and_then(|args| args.attrs);
 
         // field arg overrides struct arg
         match (struct_attrs_arg, field_attrs_arg) {
@@ -102,7 +105,7 @@ impl<'a> AttrGenerator for FieldAttrGen<'a> {
             .iter()
             .filter_map(|attr| is_doc_attr(attr).then(|| attr.meta.clone()));
 
-        let field_doc_arg = self.optfield_args().and_then(|args| args.doc);
+        let field_doc_arg = self.optfield_field_args().and_then(|args| args.doc);
 
         // field arg overrides struct arg
         match (struct_doc_arg, field_doc_arg) {

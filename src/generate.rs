@@ -62,6 +62,9 @@ pub fn generate(original: &mut ItemStruct, args: Args) -> TokenStream {
     }
 }
 
+// `bool::then_some` was stabilised in 1.62.0 but MSRV is 1.56.0
+// TODO: re-enable this lint after MSRV bump
+#[allow(clippy::unnecessary_lazy_evaluations)]
 fn index_of_first_optfield_field_attr(field: &Field) -> Option<usize> {
     field
         .attrs

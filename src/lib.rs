@@ -294,6 +294,32 @@
 //!     text: Option<String>
 //! }
 //! ```
+//! You can also set field documentation for each field individually by using
+//! the `optfield_field` attribute:
+//! ```
+//! # use optfield::*;
+//! #[optfield(Opt)]
+//! struct MyStruct {
+//!     /// Text field
+//!     #[optfield_field(doc = "Replaced docs for text field")]
+//!     text: String,
+//!     /// Number field
+//!     #[optfield_field(doc = append("Appended docs for number field"))]
+//!     number: i32,
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! struct Opt {
+//!     /// Replaced docs for text field
+//!     text: Option<String>,
+//!     /// Number field
+//!     /// Appended docs for number field
+//!     number: Option<i32>,
+//! }
+//! ```
+//! Note that the `doc` argument on each field ***always*** overrides the
+//! `field_doc` argument on the struct.
 //!
 //! # Field attributes
 //! Field attributes can be handled using the `field_attrs` argument which works
@@ -402,6 +428,63 @@
 //!     my_number: Option<i32>
 //! }
 //! ```
+//! You can also set field attributes for each field individually by using
+//! the `optfield_field` attribute:
+//! ```
+//! # use optfield::*;
+//! # use serde::Deserialize;
+//! #[optfield(Opt, attrs)]
+//! #[derive(Deserialize)]
+//! struct MyStruct {
+//!     #[optfield_field(attrs)]
+//!     #[serde(rename = "text")]
+//!     my_text: String,
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! # use serde::Deserialize;
+//! #[derive(Deserialize)]
+//! struct Opt {
+//!     #[serde(rename = "text")]
+//!     my_text: Option<String>,
+//! }
+//! ```
+//! Add and replace syntax is supported too:
+//! ```
+//! # use optfield::*;
+//! # use serde::Deserialize;
+//! #[optfield(Opt, attrs)]
+//! #[derive(Deserialize)]
+//! struct MyStruct {
+//!     #[optfield_field(attrs = add(
+//!         serde(default)
+//!     ))]
+//!     #[serde(rename = "text")]
+//!     my_text: String,
+//!
+//!     #[optfield_field(attrs = (
+//!         serde(default)
+//!     ))]
+//!     #[serde(rename = "number")]
+//!     my_number: i32
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! # use serde::Deserialize;
+//! #[derive(Deserialize)]
+//! struct Opt {
+//!     #[serde(rename = "text")]
+//!     #[serde(default)]
+//!     my_text: Option<String>,
+//!
+//!     #[serde(default)]
+//!     my_number: Option<i32>
+//! }
+//! ```
+//! Note that the `attrs` argument on each field ***always*** overrides the
+//! `field_attrs` argument on the struct.
 //!
 //! # Merging
 //! When the  `merge_fn` argument is used `optfield` will add a method to the

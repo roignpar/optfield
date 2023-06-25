@@ -3,7 +3,7 @@ use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::token::{Comma, Eq, Pub};
 use syn::{parse2, Ident, LitStr, Meta, Visibility};
 
-mod kw {
+pub mod kw {
     // NOTE: when adding new keywords update ArgList::next_is_kw
     syn::custom_keyword!(doc);
     syn::custom_keyword!(merge_fn);
@@ -13,12 +13,16 @@ mod kw {
     syn::custom_keyword!(field_attrs);
     syn::custom_keyword!(from);
 
+    pub mod doc_sub {
+        syn::custom_keyword!(append);
+    }
+
     pub mod attrs_sub {
         syn::custom_keyword!(add);
     }
 }
 
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug, PartialEq)]
 pub struct Args {
     pub item: GenItem,
     pub merge: Option<MergeFn>,
@@ -30,6 +34,7 @@ pub struct Args {
     pub from: bool,
 }
 
+#[derive(Debug)]
 enum Arg {
     Merge(MergeFn),
     Doc(Doc),
@@ -40,31 +45,35 @@ enum Arg {
     From(bool),
 }
 
-#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug, PartialEq)]
 pub struct GenItem {
     pub name: Ident,
     pub visibility: Option<Visibility>,
 }
 
-#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MergeFn {
     pub visibility: Visibility,
     pub name: MergeFnName,
 }
 
-#[cfg_attr(test, derive(Clone, Debug, PartialEq))]
+#[derive(Clone, Debug, PartialEq)]
 pub enum MergeFnName {
     Default,
     Custom(Ident),
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, PartialEq)]
 pub enum Doc {
-    Same,
-    Custom(String),
+    /// Keep the same documentation.
+    Keep,
+    /// Replace with custom documentation.
+    Replace(String),
+    /// Append additional documentation.
+    Append(String),
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[derive(Debug, PartialEq)]
 pub enum Attrs {
     /// Keep same attributes.
     Keep,
@@ -78,6 +87,7 @@ pub enum Attrs {
 pub struct AttrList(Vec<Meta>);
 
 /// Parser for unordered args.
+#[derive(Debug)]
 struct ArgList {
     item: GenItem,
     merge: Option<Span>,
@@ -327,11 +337,18 @@ impl Parse for Doc {
         if input.peek(Eq) {
             input.parse::<Eq>()?;
 
-            let doc_text: LitStr = input.parse()?;
+            if input.peek(kw::doc_sub::append) {
+                input.parse::<kw::doc_sub::append>()?;
 
-            Ok(Doc::Custom(doc_text.value()))
+                let group: Group = input.parse()?;
+                let doc_text: LitStr = parse2(group.stream())?;
+                Ok(Doc::Append(doc_text.value()))
+            } else {
+                let doc_text: LitStr = input.parse()?;
+                Ok(Doc::Replace(doc_text.value()))
+            }
         } else {
-            Ok(Doc::Same)
+            Ok(Doc::Keep)
         }
     }
 }
@@ -459,7 +476,7 @@ mod tests {
                 #[test]
                 #[should_panic(expected = $expected)]
                 fn [<duplicate_ $attr _panics>]() {
-                    parse_args(quote! {
+                    parse_struct_args(quote! {
                         Opt,
                         $attr,
                         $dup
@@ -483,7 +500,7 @@ mod tests {
                 #[test]
                 #[should_panic(expected = "first argument must be opt struct name")]
                 fn [<$attr _first_panics>]() {
-                    parse_args(quote! {
+                    parse_struct_args(quote! {
                         $attr,
                         Opt
                     });
@@ -503,7 +520,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "expected opt struct name")]
     fn empty_args_panics() {
-        parse_args(TokenStream::new());
+        parse_struct_args(TokenStream::new());
     }
 
     #[test]
@@ -524,7 +541,7 @@ mod tests {
         ];
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             assert_eq!(args.item.name, "OptionalFields");
         }
@@ -532,7 +549,7 @@ mod tests {
 
     #[test]
     fn parse_no_optional_args() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt
         });
 
@@ -597,7 +614,7 @@ mod tests {
         ];
 
         for (args_tokens, fn_name, vis) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.merge.clone().unwrap().name, fn_name);
             assert_eq!(args.merge.unwrap().visibility, vis);
@@ -606,7 +623,7 @@ mod tests {
 
     #[test]
     fn parse_rewrap() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             rewrap
         });
@@ -617,10 +634,14 @@ mod tests {
     #[test]
     fn parse_doc() {
         let cases = vec![
-            (quote! {Opt, doc}, Doc::Same),
+            (quote! {Opt, doc}, Doc::Keep),
             (
                 quote! {Opt, doc = "custom docs"},
-                Doc::Custom("custom docs".to_string()),
+                Doc::Replace("custom docs".to_string()),
+            ),
+            (
+                quote! {Opt, doc = append("append docs")},
+                Doc::Append("append docs".to_string()),
             ),
         ];
 
@@ -679,7 +700,7 @@ mod tests {
         ];
 
         for (args_tokens, attrs) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.attrs, Some(attrs));
         }
@@ -687,7 +708,7 @@ mod tests {
 
     #[test]
     fn parse_field_doc() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             field_doc
         });
@@ -720,7 +741,7 @@ mod tests {
         ];
 
         for (args_tokens, attrs) in cases {
-            let args = parse_args(args_tokens);
+            let args = parse_struct_args(args_tokens);
 
             assert_eq!(args.field_attrs, Some(attrs));
         }
@@ -728,7 +749,7 @@ mod tests {
 
     #[test]
     fn parse_from() {
-        let args = parse_args(quote! {
+        let args = parse_struct_args(quote! {
             Opt,
             from
         });

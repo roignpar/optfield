@@ -2,12 +2,14 @@ use quote::quote;
 use syn::{parse2, Attribute, ItemStruct, Meta};
 
 use crate::args::{Args, Attrs, Doc};
+use crate::attrs::generator::{is_doc_attr, is_optfield_attr};
 use crate::error::unexpected;
 
 pub mod generator;
 
 use generator::AttrGenerator;
 
+#[derive(Debug)]
 struct AttrGen<'a> {
     item: &'a ItemStruct,
     args: &'a Args,
@@ -20,43 +22,54 @@ impl<'a> AttrGen<'a> {
 }
 
 impl<'a> AttrGenerator for AttrGen<'a> {
-    fn no_docs(&self) -> bool {
-        self.args.doc.is_none()
-    }
-
     fn error_action_text(&self) -> String {
         format!("generating {} attrs", self.item.ident)
     }
 
-    fn original_attrs(&self) -> &[Attribute] {
-        &self.item.attrs
-    }
+    fn new_non_doc_attrs(&self) -> Vec<Meta> {
+        use Attrs::*;
 
-    fn attrs_arg(&self) -> &Option<Attrs> {
-        &self.args.attrs
-    }
+        let original_attrs_it = self
+            .item
+            .attrs
+            .iter()
+            // this filter is required, otherwise multiple #[optfield] attributes
+            // on the same struct would error
+            .filter(|attr| !is_optfield_attr(attr))
+            .filter_map(|attr| (!is_doc_attr(attr)).then(|| attr.meta.clone()));
 
-    fn custom_docs(&self) -> Option<Meta> {
-        if let Some(Doc::Custom(d)) = &self.args.doc {
-            let tokens = quote! {
-                doc = #d
-            };
-
-            Some(
-                parse2(tokens)
-                    .unwrap_or_else(|e| panic!("{}", unexpected(self.error_action_text(), e))),
-            )
-        } else {
-            None
+        match &self.args.attrs {
+            None => vec![],
+            Some(Keep) => original_attrs_it.collect(),
+            Some(Replace(attrs)) => attrs.clone(),
+            Some(Add(attrs)) => original_attrs_it.chain(attrs.clone()).collect(),
         }
     }
 
-    fn keep_original_docs(&self) -> bool {
+    fn new_doc_attrs(&self) -> Vec<Meta> {
         use Doc::*;
 
-        match self.args.doc {
-            None | Some(Custom(_)) => false,
-            Some(Same) => true,
+        let original_doc_it = self
+            .item
+            .attrs
+            .iter()
+            .filter_map(|attr| is_doc_attr(attr).then(|| attr.meta.clone()));
+
+        match &self.args.doc {
+            None => vec![],
+            Some(Keep) => original_doc_it.collect(),
+            Some(Replace(doc_text)) => {
+                let tokens = quote! { doc = #doc_text };
+                let doc_attr = parse2(tokens)
+                    .unwrap_or_else(|e| panic!("{}", unexpected(self.error_action_text(), e)));
+                vec![doc_attr]
+            }
+            Some(Append(doc_text)) => {
+                let tokens = quote! { doc = #doc_text };
+                let doc_attr = parse2(tokens)
+                    .unwrap_or_else(|e| panic!("{}", unexpected(self.error_action_text(), e)));
+                original_doc_it.chain(std::iter::once(doc_attr)).collect()
+            }
         }
     }
 }
@@ -105,7 +118,7 @@ mod tests {
         let item_docs = doc_attrs(&item.attrs);
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&item, &args);
 
@@ -143,7 +156,7 @@ mod tests {
         let item_docs = doc_attrs(&item.attrs);
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&item, &args);
 
@@ -195,7 +208,7 @@ mod tests {
         let item_docs = doc_attrs(&item.attrs);
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&item, &args);
 
@@ -326,7 +339,7 @@ mod tests {
         ];
 
         for case in cases {
-            let args = parse_args(case);
+            let args = parse_struct_args(case);
 
             let generated = generate(&item, &args);
 

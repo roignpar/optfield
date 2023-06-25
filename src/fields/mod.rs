@@ -4,7 +4,8 @@ use syn::{parse2, Field, Fields, ItemStruct, Path, Type, TypePath};
 use crate::args::Args;
 use crate::error::unexpected;
 
-mod attrs;
+pub mod args;
+pub mod attrs;
 
 const OPTION: &str = "Option";
 
@@ -16,7 +17,6 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
 
     for field in fields.iter_mut() {
         field.attrs = attrs::generate(field, args);
-        attrs::generate(field, args);
 
         if is_option(field) && !args.rewrap {
             continue;

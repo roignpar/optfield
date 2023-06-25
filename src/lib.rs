@@ -110,8 +110,10 @@
 //! ```
 //!
 //! # Documentation
-//! To document the opt struct, either duplicate the same documentation as the
-//! original using the `doc` argument by itself:
+//! To document the opt struct, you can:
+//!
+//! 1. duplicate the same documentation as the original using the `doc` argument
+//! by itself:
 //! ```
 //! # use optfield::*;
 //! /// My struct documentation
@@ -130,7 +132,7 @@
 //!     text: Option<String>
 //! }
 //! ```
-//! Or write custom documentation by giving `doc` a value:
+//! 2. specify custom documentation by giving `doc` a value:
 //! ```
 //! # use optfield::*;
 //! #[optfield(
@@ -148,6 +150,27 @@
 //! ```
 //! /// Custom documentation
 //! /// for Opt struct...
+//! struct Opt {
+//!     text: Option<String>
+//! }
+//! ```
+//! 3. append additional documentation using the `append` syntax:
+//! ```
+//! /// Original documentation
+//! # use optfield::*;
+//! #[optfield(
+//!     Opt,
+//!     doc = append("Additional documentation")
+//! )]
+//! struct MyStruct {
+//!     text: String
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! /// Original documentation
+//! ///
+//! /// Additional documentation
 //! struct Opt {
 //!     text: Option<String>
 //! }
@@ -271,6 +294,32 @@
 //!     text: Option<String>
 //! }
 //! ```
+//! You can also set field documentation for each field individually by using
+//! the `optfield_field` attribute:
+//! ```
+//! # use optfield::*;
+//! #[optfield(Opt)]
+//! struct MyStruct {
+//!     /// Text field
+//!     #[optfield_field(doc = "Replaced docs for text field")]
+//!     text: String,
+//!     /// Number field
+//!     #[optfield_field(doc = append("Appended docs for number field"))]
+//!     number: i32,
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! struct Opt {
+//!     /// Replaced docs for text field
+//!     text: Option<String>,
+//!     /// Number field
+//!     /// Appended docs for number field
+//!     number: Option<i32>,
+//! }
+//! ```
+//! Note that the `doc` argument on each field ***always*** overrides the
+//! `field_doc` argument on the struct.
 //!
 //! # Field attributes
 //! Field attributes can be handled using the `field_attrs` argument which works
@@ -379,6 +428,63 @@
 //!     my_number: Option<i32>
 //! }
 //! ```
+//! You can also set field attributes for each field individually by using
+//! the `optfield_field` attribute:
+//! ```
+//! # use optfield::*;
+//! # use serde::Deserialize;
+//! #[optfield(Opt, attrs)]
+//! #[derive(Deserialize)]
+//! struct MyStruct {
+//!     #[optfield_field(attrs)]
+//!     #[serde(rename = "text")]
+//!     my_text: String,
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! # use serde::Deserialize;
+//! #[derive(Deserialize)]
+//! struct Opt {
+//!     #[serde(rename = "text")]
+//!     my_text: Option<String>,
+//! }
+//! ```
+//! Add and replace syntax is supported too:
+//! ```
+//! # use optfield::*;
+//! # use serde::Deserialize;
+//! #[optfield(Opt, attrs)]
+//! #[derive(Deserialize)]
+//! struct MyStruct {
+//!     #[optfield_field(attrs = add(
+//!         serde(default)
+//!     ))]
+//!     #[serde(rename = "text")]
+//!     my_text: String,
+//!
+//!     #[optfield_field(attrs = (
+//!         serde(default)
+//!     ))]
+//!     #[serde(rename = "number")]
+//!     my_number: i32
+//! }
+//! ```
+//! Will generate:
+//! ```
+//! # use serde::Deserialize;
+//! #[derive(Deserialize)]
+//! struct Opt {
+//!     #[serde(rename = "text")]
+//!     #[serde(default)]
+//!     my_text: Option<String>,
+//!
+//!     #[serde(default)]
+//!     my_number: Option<i32>
+//! }
+//! ```
+//! Note that the `attrs` argument on each field ***always*** overrides the
+//! `field_attrs` argument on the struct.
 //!
 //! # Merging
 //! When the  `merge_fn` argument is used `optfield` will add a method to the
@@ -471,10 +577,10 @@ use generate::generate;
 /// [crate documentation]: ./index.html
 #[proc_macro_attribute]
 pub fn optfield(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let item: ItemStruct = parse_macro_input!(item);
+    let mut item: ItemStruct = parse_macro_input!(item);
     let args: Args = parse_macro_input!(attr);
 
-    let opt_item = generate(&item, args);
+    let opt_item = generate(&mut item, args);
 
     let out = quote! {
         #item
@@ -497,14 +603,7 @@ mod test_util {
         item_tokens: TokenStream,
         args_tokens: TokenStream,
     ) -> (ItemStruct, Args) {
-        (parse_item(item_tokens), parse_args(args_tokens))
-    }
-
-    pub fn parse_field_and_args(
-        field_tokens: TokenStream,
-        args_tokens: TokenStream,
-    ) -> (Field, Args) {
-        (parse_field(field_tokens), parse_args(args_tokens))
+        (parse_item(item_tokens), parse_struct_args(args_tokens))
     }
 
     pub fn parse_item(tokens: TokenStream) -> ItemStruct {
@@ -515,7 +614,7 @@ mod test_util {
         Field::parse_named.parse2(tokens).unwrap()
     }
 
-    pub fn parse_args(tokens: TokenStream) -> Args {
+    pub fn parse_struct_args(tokens: TokenStream) -> Args {
         parse2(tokens).unwrap()
     }
 
@@ -564,10 +663,6 @@ mod test_util {
     }
 
     pub fn doc_attrs(attrs: &[Attribute]) -> Vec<Attribute> {
-        attrs
-            .iter()
-            .filter(|a| is_doc_attr(a))
-            .map(|a| a.clone())
-            .collect()
+        attrs.iter().filter(|a| is_doc_attr(a)).cloned().collect()
     }
 }

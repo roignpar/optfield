@@ -441,7 +441,8 @@ fn nested_wrappers() {
 
     #[optfield(Opt, wrapper = Wrap1, attrs = add(
         optfield(Opt1, wrapper = Wrap2),
-        optfield(Opt2, wrapper = Wrap2, rewrap)
+        optfield(Opt2, wrapper = Wrap2, rewrap),
+        optfield(Opt3)
     ))]
     #[derive(Debug)]
     struct Ogiginal {
@@ -466,5 +467,11 @@ fn nested_wrappers() {
         opt: Wrap2(Wrap1(None)),
         wrap1: Wrap2(Wrap1(2)),
         wrap2: Wrap2(Wrap2(2)),
+    };
+
+    let _ = Opt3 {
+        opt: Some(Wrap1(Some(3))),
+        wrap1: Some(Wrap1(3)),
+        wrap2: Some(Wrap1(Wrap2(3))),
     };
 }

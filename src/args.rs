@@ -12,6 +12,7 @@ mod kw {
     syn::custom_keyword!(field_doc);
     syn::custom_keyword!(field_attrs);
     syn::custom_keyword!(from);
+    syn::custom_keyword!(wrapper);
 
     pub mod attrs_sub {
         syn::custom_keyword!(add);
@@ -28,6 +29,7 @@ pub struct Args {
     pub field_doc: bool,
     pub field_attrs: Option<Attrs>,
     pub from: bool,
+    pub wrapper: Option<Wrapper>,
 }
 
 enum Arg {
@@ -38,6 +40,7 @@ enum Arg {
     FieldDocs(bool),
     FieldAttrs(Attrs),
     From(bool),
+    Wrapper(Wrapper),
 }
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -74,6 +77,11 @@ pub enum Attrs {
     Add(Vec<Meta>),
 }
 
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub struct Wrapper {
+    pub name: Ident,
+}
+
 #[derive(Debug)]
 pub struct AttrList(Vec<Meta>);
 
@@ -87,6 +95,7 @@ struct ArgList {
     field_doc: Option<Span>,
     field_attrs: Option<Span>,
     from: Option<Span>,
+    wrapper: Option<Span>,
     list: Vec<Arg>,
 }
 
@@ -135,6 +144,8 @@ impl Parse for ArgList {
                 arg_list.parse_field_attrs(input)?;
             } else if lookahead.peek(kw::from) {
                 arg_list.parse_from(input)?;
+            } else if lookahead.peek(kw::wrapper) {
+                arg_list.parse_wrapper(input)?;
             } else {
                 return Err(lookahead.error());
             }
@@ -154,6 +165,7 @@ impl Args {
             attrs: None,
             field_doc: false,
             field_attrs: None,
+            wrapper: None,
             from: false,
         }
     }
@@ -170,6 +182,7 @@ impl ArgList {
             field_doc: None,
             field_attrs: None,
             from: None,
+            wrapper: None,
             list: Vec::with_capacity(6),
         }
     }
@@ -182,6 +195,7 @@ impl ArgList {
             || input.peek(kw::field_attrs)
             || input.peek(kw::attrs)
             || input.peek(kw::from)
+            || input.peek(kw::wrapper)
     }
 
     fn parse_doc(&mut self, input: ParseStream) -> Result<()> {
@@ -282,6 +296,20 @@ impl ArgList {
 
         self.from = Some(span);
         self.list.push(Arg::From(true));
+
+        Ok(())
+    }
+
+    fn parse_wrapper(&mut self, input: ParseStream) -> Result<()> {
+        if let Some(wrapper_span) = self.wrapper {
+            return ArgList::already_defined_error(input, "wrapper", wrapper_span);
+        }
+
+        let span = input.span();
+        let wrapper: Wrapper = input.parse()?;
+
+        self.wrapper = Some(span);
+        self.list.push(Arg::Wrapper(wrapper));
 
         Ok(())
     }
@@ -417,6 +445,22 @@ impl Parse for AttrList {
     }
 }
 
+impl Parse for Wrapper {
+    fn parse(input: ParseStream) -> Result<Self> {
+        input.parse::<kw::wrapper>()?;
+
+        if !input.peek(Eq) || !input.peek2(Ident) {
+            return Err(input.error("wrapper needs a type name: wrapper = ..."));
+        }
+
+        input.parse::<Eq>()?;
+
+        let name = input.parse()?;
+
+        Ok(Wrapper { name })
+    }
+}
+
 impl From<ArgList> for Args {
     fn from(arg_list: ArgList) -> Args {
         use Arg::*;
@@ -432,6 +476,7 @@ impl From<ArgList> for Args {
                 FieldDocs(field_doc) => args.field_doc = field_doc,
                 FieldAttrs(field_attrs) => args.field_attrs = Some(field_attrs),
                 From(from) => args.from = from,
+                Wrapper(wrapper) => args.wrapper = Some(wrapper),
             }
         }
 
@@ -455,10 +500,14 @@ mod tests {
         };
 
         ($attr:meta, $dup:meta, $expected:literal) => {
+            duplicate_arg_panics_test!($attr, $attr, $attr, $expected);
+        };
+
+        ($name:meta, $attr:meta, $dup:meta, $expected:literal) => {
             paste::item! {
                 #[test]
                 #[should_panic(expected = $expected)]
-                fn [<duplicate_ $attr _panics>]() {
+                fn [<duplicate_ $name _panics>]() {
                     parse_args(quote! {
                         Opt,
                         $attr,
@@ -476,6 +525,12 @@ mod tests {
     duplicate_arg_panics_test!(field_doc, "field_doc already defined");
     duplicate_arg_panics_test!(field_attrs, "field_attrs already defined");
     duplicate_arg_panics_test!(from, "from already defined");
+    duplicate_arg_panics_test!(
+        wrapper,
+        wrapper = W,
+        wrapper = W2,
+        "wrapper already defined"
+    );
 
     macro_rules! struct_name_not_first_panics {
         ($attr:meta) => {
@@ -499,6 +554,7 @@ mod tests {
     struct_name_not_first_panics!(field_doc);
     struct_name_not_first_panics!(field_attrs);
     struct_name_not_first_panics!(from);
+    struct_name_not_first_panics!(wrapper);
 
     #[test]
     #[should_panic(expected = "expected opt struct name")]
@@ -734,5 +790,29 @@ mod tests {
         });
 
         assert!(args.from);
+    }
+
+    #[test]
+    #[should_panic(expected = "wrapper needs a type name: wrapper = ...")]
+    fn parse_wrapper_no_eq() {
+        parse_args(quote! {Opt, wrapper});
+    }
+
+    #[test]
+    #[should_panic(expected = "wrapper needs a type name: wrapper = ...")]
+    fn parse_wrapper_no_value() {
+        parse_args(quote! {Opt, wrapper =});
+    }
+
+    #[test]
+    fn parse_wrapper() {
+        let args = parse_args(quote! {
+            Opt,
+            wrapper = CustomWrapper
+        });
+
+        let custom_wrapper: Ident = syn::parse2(quote!(CustomWrapper)).unwrap();
+
+        assert_eq!(args.wrapper.unwrap().name, custom_wrapper);
     }
 }

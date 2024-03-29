@@ -457,6 +457,10 @@ impl Parse for Wrapper {
 
         let name = input.parse()?;
 
+        if name == "Option" {
+            return Err(input.error("custom wrapper cannot be Option"));
+        }
+
         Ok(Wrapper { name })
     }
 }
@@ -802,6 +806,12 @@ mod tests {
     #[should_panic(expected = "wrapper needs a type name: wrapper = ...")]
     fn parse_wrapper_no_value() {
         parse_args(quote! {Opt, wrapper =});
+    }
+
+    #[test]
+    #[should_panic(expected = "custom wrapper cannot be Option")]
+    fn parse_wrapper_option() {
+        parse_args(quote! {Opt, wrapper = Option});
     }
 
     #[test]

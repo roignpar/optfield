@@ -365,6 +365,226 @@ fn struct_wrapper() {
     // done!
 }
 
+#[optfield(TOptS, wrapper=SWrapper, merge_fn = merge_s, from, attrs)]
+#[optfield(TOptT, wrapper=SWrapper, merge_fn = merge_t, from, attrs)]
+#[optfield(TOptE, wrapper=SWrapper, merge_fn = merge_e, from, attrs)]
+#[optfield(TOptSRewrap, wrapper=SWrapper, merge_fn = merge_s_rewrap, from, rewrap, attrs)]
+#[optfield(TOptTRewrap, wrapper=SWrapper, merge_fn = merge_t_rewrap, from, rewrap, attrs)]
+#[optfield(TOptERewrap, wrapper=SWrapper, merge_fn = merge_e_rewrap, from, rewrap, attrs)]
+#[derive(Debug, Clone, PartialEq)]
+struct TOriginal<'a, T>(
+    u32,
+    &'a T,
+    Option<u32>,
+    SWrapper<&'a str>,
+    TWrapper<u32>,
+    EWrapper<T>,
+);
+
+#[test]
+fn tuple_wrapper() {
+    let _ = TOptS(
+        SWrapper::new(1),
+        SWrapper::new(&1),
+        SWrapper::new(Some(2)),
+        SWrapper::new("test"),
+        SWrapper::new(TWrapper::new(1)),
+        SWrapper::new(EWrapper::Variant1),
+    );
+
+    let _ = TOptT(
+        TWrapper::new(1),
+        TWrapper::new(&1),
+        TWrapper::new(Some(2)),
+        TWrapper::new(SWrapper::new("test")),
+        TWrapper::new(1),
+        TWrapper::new(EWrapper::Variant1),
+    );
+
+    let _ = TOptE(
+        EWrapper::new(1),
+        EWrapper::new(&1),
+        EWrapper::new(Some(2)),
+        EWrapper::new(SWrapper::new("test")),
+        EWrapper::new(TWrapper::new(1)),
+        EWrapper::t(1),
+    );
+
+    let _ = TOptSRewrap(
+        SWrapper::new(1),
+        SWrapper::new(&1),
+        SWrapper::new(Some(2)),
+        SWrapper::new(SWrapper::new("test")),
+        SWrapper::new(TWrapper::new(1)),
+        SWrapper::new(EWrapper::Variant1),
+    );
+
+    let _ = TOptTRewrap(
+        TWrapper::new(1),
+        TWrapper::new(&1),
+        TWrapper::new(Some(2)),
+        TWrapper::new(SWrapper::new("test")),
+        TWrapper::new(TWrapper::new(1)),
+        TWrapper::new(EWrapper::Variant1),
+    );
+
+    let _ = TOptE(
+        EWrapper::t(1),
+        EWrapper::t(&1),
+        EWrapper::t(Some(2)),
+        EWrapper::t(SWrapper::new("test")),
+        EWrapper::t(TWrapper::new(1)),
+        EWrapper::t(EWrapper::t(1)),
+    );
+
+    let original = TOriginal(
+        0,
+        &0,
+        Some(0),
+        SWrapper::new("test"),
+        TWrapper::new(0),
+        EWrapper::t(0),
+    );
+
+    // struct wrapper...
+    let opts = TOptS::from(original.clone());
+    assert_eq!(
+        opts,
+        TOptS(
+            SWrapper::new(0),
+            SWrapper::new(&0),
+            SWrapper::new(Some(0)),
+            SWrapper::new("test"),
+            SWrapper::new(TWrapper::new(0)),
+            SWrapper::new(EWrapper::t(0)),
+        ),
+    );
+
+    let mut opts_rewrap = TOptSRewrap::from(original.clone());
+    assert_eq!(opts_rewrap.3, SWrapper::new(SWrapper::new(0)));
+
+    let mut original_clone = original.clone();
+    original_clone.merge_s(TOptS(
+        SWrapper::new(1),
+        SWrapper::new(&1),
+        SWrapper::new(None),
+        SWrapper::new("merge"),
+        SWrapper::new(TWrapper::new(1)),
+        SWrapper::new(EWrapper::Variant1),
+    ));
+
+    assert_eq!(
+        original_clone,
+        TOriginal(
+            1,
+            &1,
+            None,
+            SWrapper::new("merge"),
+            TWrapper::new(1),
+            EWrapper::Variant1
+        ),
+    );
+
+    opts_rewrap.3 = SWrapper::new(SWrapper::new("rewrap"));
+    original_clone.merge_s_rewrap(opts_rewrap);
+
+    assert_eq!(original_clone.3, SWrapper::new("rewrap"));
+
+    // tuple wrapper...
+    let optt = TOptT::from(original.clone());
+    assert_eq!(
+        optt,
+        TOptT(
+            TWrapper::new(0),
+            TWrapper::new(&0),
+            TWrapper::new(Some(0)),
+            TWrapper::new(SWrapper::new("test")),
+            TWrapper::new(0),
+            TWrapper::new(EWrapper::t(0)),
+        ),
+    );
+
+    let mut optt_rewrap = TOptTRewrap::from(original.clone());
+    assert_eq!(optt_rewrap.4, TWrapper::new(TWrapper::new(0)));
+
+    original_clone = original.clone();
+    original_clone.merge_t(TOptT(
+        TWrapper::new(2),
+        TWrapper::new(&2),
+        TWrapper::new(Some(2)),
+        TWrapper::new(SWrapper::new("merge")),
+        TWrapper::new(2),
+        TWrapper::new(EWrapper::Variant2),
+    ));
+
+    assert_eq!(
+        original_clone,
+        TOriginal(
+            2,
+            &2,
+            Some(2),
+            SWrapper::new("merge"),
+            TWrapper::new(2),
+            EWrapper::Variant2,
+        ),
+    );
+
+    optt_rewrap.4 = TWrapper::new(TWrapper::new(3));
+    original_clone.merge_t_rewrap(optt_rewrap);
+
+    assert_eq!(original_clone.4, TWrapper::new(3));
+
+    // enum wrapper...
+    let mut opte = TOptE::from(original.clone());
+    assert_eq!(
+        opte,
+        TOptE(
+            EWrapper::t(0),
+            EWrapper::t(&0),
+            EWrapper::t(Some(0)),
+            EWrapper::t("test"),
+            EWrapper::t(TWrapper::new(0)),
+            EWrapper::t(0),
+        ),
+    );
+
+    let mut opte_rewrap = TOptERewrap::from(original.clone());
+    assert_eq!(opte_rewrap.5, EWrapper::t(EWrapper::t(0)));
+
+    original_clone = original.clone();
+    opte = TOptE(
+        EWrapper::t(3),
+        EWrapper::t(&3),
+        EWrapper::t(Some(3)),
+        EWrapper::t("merge"),
+        EWrapper::t(TWrapper::new(3)),
+        EWrapper::Variant1,
+    );
+    original_clone.merge_e(opte.clone());
+
+    assert_eq!(
+        original_clone,
+        TOriginal(
+            3,
+            &3,
+            Some(3),
+            SWrapper::new("merge"),
+            TWrapper::new(3),
+            EWrapper::t(0),
+        ),
+    );
+
+    opte.5 = EWrapper::t(3);
+    original_clone.merge_e(opte);
+
+    assert_eq!(original_clone.5, EWrapper::t(3));
+
+    opte_rewrap.5 = EWrapper::t(EWrapper::Variant2);
+    original_clone.merge_e_rewrap(opte_rewrap);
+
+    assert_eq!(original_clone.5, EWrapper::Variant2);
+}
+
 #[test]
 fn merge_from_impls() {
     // merge and from with generic impls

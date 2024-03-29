@@ -114,7 +114,7 @@ struct Original<'a, T> {
 #[test]
 fn struct_wrapper() {
     // basics, should just compile
-    let _opts = OptS {
+    let _ = OptS {
         number: SWrapper::new(4),
         text: SWrapper::new("test"),
         generic: SWrapper::new(1),
@@ -124,7 +124,7 @@ fn struct_wrapper() {
         ewrapped: SWrapper::new(EWrapper::Variant1),
     };
 
-    let _opts_rewrap = OptSRewrap {
+    let _ = OptSRewrap {
         number: SWrapper::new(4),
         text: SWrapper::new("test"),
         generic: SWrapper::new(1),
@@ -134,7 +134,7 @@ fn struct_wrapper() {
         ewrapped: SWrapper::new(EWrapper::Variant1),
     };
 
-    let _optt = OptT {
+    let _ = OptT {
         number: TWrapper::new(4),
         text: TWrapper::new("test"),
         generic: TWrapper::new(1),
@@ -144,7 +144,7 @@ fn struct_wrapper() {
         ewrapped: TWrapper::new(EWrapper::Variant1),
     };
 
-    let _optt_rewrap = OptTRewrap {
+    let _ = OptTRewrap {
         number: TWrapper::new(4),
         text: TWrapper::new("test"),
         generic: TWrapper::new(1),
@@ -154,7 +154,7 @@ fn struct_wrapper() {
         ewrapped: TWrapper::new(EWrapper::Variant1),
     };
 
-    let _opte = OptE {
+    let _ = OptE {
         number: EWrapper::t(4),
         text: EWrapper::t("test"),
         generic: EWrapper::t(1),
@@ -164,7 +164,7 @@ fn struct_wrapper() {
         ewrapped: EWrapper::t(7),
     };
 
-    let _opte_rewrap = OptERewrap {
+    let _ = OptERewrap {
         number: EWrapper::t(4),
         text: EWrapper::t("test"),
         generic: EWrapper::t(1),

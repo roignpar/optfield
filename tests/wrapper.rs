@@ -12,10 +12,17 @@ impl<T> SWrapper<T> {
     }
 }
 
-// needed for merging
+// needed for merging with rewrap
 impl<T> From<SWrapper<T>> for Option<T> {
     fn from(s: SWrapper<T>) -> Self {
         Some(s.item)
+    }
+}
+
+// needed for merging without rewrap
+impl<T> From<&SWrapper<T>> for Option<()> {
+    fn from(_: &SWrapper<T>) -> Self {
+        Some(())
     }
 }
 
@@ -39,6 +46,12 @@ impl<T> TWrapper<T> {
 impl<T> From<TWrapper<T>> for Option<T> {
     fn from(t: TWrapper<T>) -> Self {
         Some(t.1)
+    }
+}
+
+impl<T> From<&TWrapper<T>> for Option<()> {
+    fn from(_: &TWrapper<T>) -> Self {
+        Some(())
     }
 }
 
@@ -72,6 +85,15 @@ impl<T> From<EWrapper<T>> for Option<T> {
     }
 }
 
+impl<T> From<&EWrapper<T>> for Option<()> {
+    fn from(e: &EWrapper<T>) -> Self {
+        match e {
+            EWrapper::VariantT(_) => Some(()),
+            EWrapper::Variant1 | EWrapper::Variant2 => None,
+        }
+    }
+}
+
 // needed for from
 impl<T> From<T> for EWrapper<T> {
     fn from(value: T) -> Self {
@@ -85,9 +107,9 @@ impl<T> From<T> for EWrapper<T> {
 #[optfield(OptSRewrap, wrapper = SWrapper, rewrap)]
 #[optfield(OptTRewrap, wrapper = TWrapper, rewrap)]
 #[optfield(OptERewrap, wrapper = EWrapper, rewrap)]
-#[optfield(OptSMerge, wrapper = SWrapper, merge_fn = merge_s)]
-#[optfield(OptTMerge, wrapper = TWrapper, merge_fn = merge_t)]
-#[optfield(OptEMerge, wrapper = EWrapper, merge_fn = merge_e)]
+#[optfield(OptSMerge, wrapper = SWrapper, merge_fn = merge_s, attrs)]
+#[optfield(OptTMerge, wrapper = TWrapper, merge_fn = merge_t, attrs)]
+#[optfield(OptEMerge, wrapper = EWrapper, merge_fn = merge_e, attrs)]
 #[optfield(OptSMergeRewrap, wrapper = SWrapper,
     rewrap, merge_fn = merge_s_rewrap, attrs)]
 #[optfield(OptTMergeRewrap, wrapper = TWrapper,
@@ -114,64 +136,64 @@ struct Original<'a, T> {
 #[test]
 fn struct_wrapper() {
     // basics, should just compile
-    let _ = OptS {
+    let _ = OptS::<i32> {
         number: SWrapper::new(4),
         text: SWrapper::new("test"),
         generic: SWrapper::new(1),
         optional: SWrapper::new(None),
-        swrapped: SWrapper::new(5),
+        swrapped: SWrapper::new(&5),
         twrapped: SWrapper::new(TWrapper::new(8)),
         ewrapped: SWrapper::new(EWrapper::Variant1),
     };
 
-    let _ = OptSRewrap {
+    let _ = OptSRewrap::<i32> {
         number: SWrapper::new(4),
         text: SWrapper::new("test"),
         generic: SWrapper::new(1),
         optional: SWrapper::new(None),
-        swrapped: SWrapper::new(SWrapper::new(5)),
+        swrapped: SWrapper::new(SWrapper::new(&5)),
         twrapped: SWrapper::new(TWrapper::new(8)),
         ewrapped: SWrapper::new(EWrapper::Variant1),
     };
 
-    let _ = OptT {
+    let _ = OptT::<i32> {
         number: TWrapper::new(4),
         text: TWrapper::new("test"),
         generic: TWrapper::new(1),
         optional: TWrapper::new(None),
-        swrapped: TWrapper::new(SWrapper::new(8)),
+        swrapped: TWrapper::new(SWrapper::new(&8)),
         twrapped: TWrapper::new(8),
         ewrapped: TWrapper::new(EWrapper::Variant1),
     };
 
-    let _ = OptTRewrap {
+    let _ = OptTRewrap::<i32> {
         number: TWrapper::new(4),
         text: TWrapper::new("test"),
         generic: TWrapper::new(1),
         optional: TWrapper::new(None),
-        swrapped: TWrapper::new(SWrapper::new(8)),
+        swrapped: TWrapper::new(SWrapper::new(&8)),
         twrapped: TWrapper::new(TWrapper::new(8)),
         ewrapped: TWrapper::new(EWrapper::Variant1),
     };
 
-    let _ = OptE {
+    let _ = OptE::<i32> {
         number: EWrapper::t(4),
         text: EWrapper::t("test"),
         generic: EWrapper::t(1),
         optional: EWrapper::t(None),
-        swrapped: EWrapper::t(SWrapper::new(8)),
+        swrapped: EWrapper::t(SWrapper::new(&8)),
         twrapped: EWrapper::t(TWrapper::new(8)),
-        ewrapped: EWrapper::t(7),
+        ewrapped: EWrapper::t("test".to_string()),
     };
 
-    let _ = OptERewrap {
+    let _ = OptERewrap::<i32> {
         number: EWrapper::t(4),
         text: EWrapper::t("test"),
         generic: EWrapper::t(1),
         optional: EWrapper::t(None),
-        swrapped: EWrapper::t(SWrapper::new(8)),
+        swrapped: EWrapper::t(SWrapper::new(&8)),
         twrapped: EWrapper::t(TWrapper::new(8)),
-        ewrapped: EWrapper::t(EWrapper::t(5)),
+        ewrapped: EWrapper::t(EWrapper::t("test".to_string())),
     };
 
     let original = Original {
@@ -271,7 +293,7 @@ fn struct_wrapper() {
         ewrapped: EWrapper::Variant2,
     };
 
-    original_clone.merge_e(opte_merge);
+    original_clone.merge_e(opte_merge.clone());
 
     assert_eq!(original_clone.number, 0);
     assert_eq!(original_clone.text, "merge_test");
@@ -281,11 +303,11 @@ fn struct_wrapper() {
     assert_eq!(original_clone.twrapped, TWrapper::new(0),);
     assert_eq!(original_clone.ewrapped, EWrapper::Variant1);
 
-    opte_merge.ewrapped = EWrapper::t(0);
+    opte_merge.ewrapped = EWrapper::t("merge".to_string());
 
     original_clone.merge_e(opte_merge);
 
-    assert_eq!(original_clone.ewrapped, EWrapper::t(0));
+    assert_eq!(original_clone.ewrapped, EWrapper::t("merge".to_string()));
 
     let mut opte_merge_rewrap = OptEMergeRewrap {
         number: EWrapper::t(0),
@@ -299,13 +321,13 @@ fn struct_wrapper() {
 
     original_clone.merge_e_rewrap(opte_merge_rewrap.clone());
 
-    assert_eq!(original_clone.ewrapped, EWrapper::Variant1);
+    assert_eq!(original_clone.ewrapped, EWrapper::Variant2);
 
-    opte_merge_rewrap.ewrapped = EWrapper::t(EWrapper::t(9));
+    opte_merge_rewrap.ewrapped = EWrapper::t(EWrapper::t("rewrap".to_string()));
 
     original_clone.merge_e_rewrap(opte_merge_rewrap);
 
-    assert_eq!(original_clone.ewrapped, EWrapper::t(9));
+    assert_eq!(original_clone.ewrapped, EWrapper::t("rewrap".to_string()));
 
     let original_from = Original {
         number: 1,
@@ -323,25 +345,25 @@ fn struct_wrapper() {
     assert_eq!(opts_from.number, SWrapper::new(1));
     assert_eq!(opts_from.text, SWrapper::new("from_test"));
     assert_eq!(opts_from.generic, SWrapper::new(1));
-    assert_eq!(opts_from.optional, SWrapper::new(Some(&[1, 1])));
+    assert_eq!(opts_from.optional, SWrapper::new(Some([1, 1].as_slice())));
     assert_eq!(opts_from.swrapped, SWrapper::new(&1));
     assert_eq!(opts_from.twrapped, SWrapper::new(TWrapper::new(1)));
     assert_eq!(opts_from.ewrapped, SWrapper::new(EWrapper::Variant1));
 
-    let optt_from_rewrap = OptTFromRewrap::from(original_from.clone());
+    let opts_from_rewrap = OptSFromRewrap::from(original_from.clone());
 
-    assert_eq!(optt_from_rewrap.swrapped, SWrapper::new(SWrapper::new(1)));
+    assert_eq!(opts_from_rewrap.swrapped, SWrapper::new(SWrapper::new(&1)));
 
     // opt with tuple wrapper from original
     let optt_from = OptTFrom::from(original_from.clone());
 
-    assert_eq!(opts_from.number, TWrapper::new(1));
-    assert_eq!(opts_from.text, TWrapper::new("from_test"));
-    assert_eq!(opts_from.generic, TWrapper::new(1));
-    assert_eq!(opts_from.optional, TWrapper::new(Some(&[1, 1])));
-    assert_eq!(opts_from.swrapped, TWrapper::new(SWrapper::new(&1)));
-    assert_eq!(opts_from.twrapped, TWrapper::new(1));
-    assert_eq!(opts_from.ewrapped, TWrapper::new(EWrapper::Variant1));
+    assert_eq!(optt_from.number, TWrapper::new(1));
+    assert_eq!(optt_from.text, TWrapper::new("from_test"));
+    assert_eq!(optt_from.generic, TWrapper::new(1));
+    assert_eq!(optt_from.optional, TWrapper::new(Some([1, 1].as_slice())));
+    assert_eq!(optt_from.swrapped, TWrapper::new(SWrapper::new(&1)));
+    assert_eq!(optt_from.twrapped, TWrapper::new(1));
+    assert_eq!(optt_from.ewrapped, TWrapper::new(EWrapper::Variant1));
 
     let optt_from_rewrap = OptTFromRewrap::from(original_from.clone());
 
@@ -350,13 +372,13 @@ fn struct_wrapper() {
     // opt with enum wrapper from original
     let opte_from = OptEFrom::from(original_from.clone());
 
-    assert_eq!(opts_from.number, EWrapper::t(1));
-    assert_eq!(opts_from.text, EWrapper::t("from_test"));
-    assert_eq!(opts_from.generic, EWrapper::t(1));
-    assert_eq!(opts_from.optional, EWrapper::t(Some(&[1, 1])));
-    assert_eq!(opts_from.swrapped, EWrapper::t(SWrapper::new(&1)));
-    assert_eq!(opts_from.twrapped, EWrapper::t(TWrapper::new(1)));
-    assert_eq!(opts_from.ewrapped, EWrapper::Variant1);
+    assert_eq!(opte_from.number, EWrapper::t(1));
+    assert_eq!(opte_from.text, EWrapper::t("from_test"));
+    assert_eq!(opte_from.generic, EWrapper::t(1));
+    assert_eq!(opte_from.optional, EWrapper::t(Some([1, 1].as_slice())));
+    assert_eq!(opte_from.swrapped, EWrapper::t(SWrapper::new(&1)));
+    assert_eq!(opte_from.twrapped, EWrapper::t(TWrapper::new(1)));
+    assert_eq!(opte_from.ewrapped, EWrapper::Variant1);
 
     let opte_from_rewrap = OptEFromRewrap::from(original_from);
 
@@ -366,11 +388,11 @@ fn struct_wrapper() {
 }
 
 #[optfield(TOptS, wrapper=SWrapper, merge_fn = merge_s, from, attrs)]
-#[optfield(TOptT, wrapper=SWrapper, merge_fn = merge_t, from, attrs)]
-#[optfield(TOptE, wrapper=SWrapper, merge_fn = merge_e, from, attrs)]
+#[optfield(TOptT, wrapper=TWrapper, merge_fn = merge_t, from, attrs)]
+#[optfield(TOptE, wrapper=EWrapper, merge_fn = merge_e, from, attrs)]
 #[optfield(TOptSRewrap, wrapper=SWrapper, merge_fn = merge_s_rewrap, from, rewrap, attrs)]
-#[optfield(TOptTRewrap, wrapper=SWrapper, merge_fn = merge_t_rewrap, from, rewrap, attrs)]
-#[optfield(TOptERewrap, wrapper=SWrapper, merge_fn = merge_e_rewrap, from, rewrap, attrs)]
+#[optfield(TOptTRewrap, wrapper=TWrapper, merge_fn = merge_t_rewrap, from, rewrap, attrs)]
+#[optfield(TOptERewrap, wrapper=EWrapper, merge_fn = merge_e_rewrap, from, rewrap, attrs)]
 #[derive(Debug, Clone, PartialEq)]
 struct TOriginal<'a, T>(
     u32,
@@ -402,11 +424,11 @@ fn tuple_wrapper() {
     );
 
     let _ = TOptE(
-        EWrapper::new(1),
-        EWrapper::new(&1),
-        EWrapper::new(Some(2)),
-        EWrapper::new(SWrapper::new("test")),
-        EWrapper::new(TWrapper::new(1)),
+        EWrapper::t(1),
+        EWrapper::t(&1),
+        EWrapper::t(Some(2)),
+        EWrapper::t(SWrapper::new("test")),
+        EWrapper::t(TWrapper::new(1)),
         EWrapper::t(1),
     );
 
@@ -428,7 +450,7 @@ fn tuple_wrapper() {
         TWrapper::new(EWrapper::Variant1),
     );
 
-    let _ = TOptE(
+    let _ = TOptERewrap(
         EWrapper::t(1),
         EWrapper::t(&1),
         EWrapper::t(Some(2)),
@@ -461,7 +483,7 @@ fn tuple_wrapper() {
     );
 
     let mut opts_rewrap = TOptSRewrap::from(original.clone());
-    assert_eq!(opts_rewrap.3, SWrapper::new(SWrapper::new(0)));
+    assert_eq!(opts_rewrap.3, SWrapper::new(SWrapper::new("test")));
 
     let mut original_clone = original.clone();
     original_clone.merge_s(TOptS(
@@ -542,7 +564,7 @@ fn tuple_wrapper() {
             EWrapper::t(0),
             EWrapper::t(&0),
             EWrapper::t(Some(0)),
-            EWrapper::t("test"),
+            EWrapper::t(SWrapper::new("test")),
             EWrapper::t(TWrapper::new(0)),
             EWrapper::t(0),
         ),
@@ -556,7 +578,7 @@ fn tuple_wrapper() {
         EWrapper::t(3),
         EWrapper::t(&3),
         EWrapper::t(Some(3)),
-        EWrapper::t("merge"),
+        EWrapper::t(SWrapper::new("merge")),
         EWrapper::t(TWrapper::new(3)),
         EWrapper::Variant1,
     );
@@ -588,7 +610,7 @@ fn tuple_wrapper() {
 #[test]
 fn merge_from_impls() {
     // merge and from with generic impls
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     struct GWrapper<T>(T);
 
     impl<T> From<GWrapper<T>> for Option<T> {
@@ -604,7 +626,7 @@ fn merge_from_impls() {
     }
 
     // merge and from with specific impls
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     struct UWrapper<T>(T);
 
     impl From<UWrapper<u32>> for Option<u32> {
@@ -620,7 +642,7 @@ fn merge_from_impls() {
     }
 
     #[optfield(OptG, wrapper = GWrapper, merge_fn = merge_g, from)]
-    #[optfield(OptU, wrapper = GWrapper, merge_fn = merge_u, from)]
+    #[optfield(OptU, wrapper = UWrapper, merge_fn = merge_u, from)]
     #[derive(Debug, Clone)]
     struct Original {
         field: u32,
@@ -661,37 +683,37 @@ fn nested_wrappers() {
 
     #[optfield(Opt, wrapper = Wrap1, attrs = add(
         optfield(Opt1, wrapper = Wrap2),
-        optfield(Opt2, wrapper = Wrap2, rewrap),
+        optfield(Opt2, wrapper = Wrap1, rewrap),
         optfield(Opt3)
     ))]
     #[derive(Debug)]
     struct Ogiginal {
-        opt: Option<u32>,
-        wrap1: Wrap1<u32>,
-        wrap2: Wrap2<u32>,
+        _opt: Option<u32>,
+        _wrap1: Wrap1<u32>,
+        _wrap2: Wrap2<u32>,
     }
 
     let _ = Opt {
-        opt: Wrap1(Some(1)),
-        wrap1: Wrap1(1),
-        wrap2: Wrap1(Wrap2(1)),
+        _opt: Wrap1(Some(1)),
+        _wrap1: Wrap1(1),
+        _wrap2: Wrap1(Wrap2(1)),
     };
 
     let _ = Opt1 {
-        opt: Wrap2(Wrap1(None)),
-        wrap1: Wrap2(Wrap1(2)),
-        wrap2: Wrap2(2),
+        _opt: Wrap2(Wrap1(None)),
+        _wrap1: Wrap2(Wrap1(2)),
+        _wrap2: Wrap2(Wrap1(Wrap2(2))),
     };
 
     let _ = Opt2 {
-        opt: Wrap2(Wrap1(None)),
-        wrap1: Wrap2(Wrap1(2)),
-        wrap2: Wrap2(Wrap2(2)),
+        _opt: Wrap1(Wrap1(None)),
+        _wrap1: Wrap1(Wrap1(2)),
+        _wrap2: Wrap1(Wrap1(Wrap2(2))),
     };
 
     let _ = Opt3 {
-        opt: Some(Wrap1(Some(3))),
-        wrap1: Some(Wrap1(3)),
-        wrap2: Some(Wrap1(Wrap2(3))),
+        _opt: Some(Wrap1(Some(3))),
+        _wrap1: Some(Wrap1(3)),
+        _wrap2: Some(Wrap1(Wrap2(3))),
     };
 }

@@ -224,7 +224,7 @@ fn struct_wrapper() {
     assert_eq!(original_clone.number, 0);
     assert_eq!(original_clone.text, "merge_test");
     assert_eq!(original_clone.generic, 0);
-    assert_eq!(original_clone.optional, Some([0].as_slice()));
+    assert_eq!(original_clone.optional, Some([0].as_ref()));
     assert_eq!(original_clone.swrapped, SWrapper::new(&0));
     assert_eq!(original_clone.twrapped, TWrapper::new(0),);
     assert_eq!(original_clone.ewrapped, EWrapper::Variant2);
@@ -261,7 +261,7 @@ fn struct_wrapper() {
     assert_eq!(original_clone.number, 0);
     assert_eq!(original_clone.text, "merge_test");
     assert_eq!(original_clone.generic, 0);
-    assert_eq!(original_clone.optional, Some([0].as_slice()));
+    assert_eq!(original_clone.optional, Some([0].as_ref()));
     assert_eq!(original_clone.swrapped, SWrapper::new(&0));
     assert_eq!(original_clone.twrapped, TWrapper::new(0),);
     assert_eq!(original_clone.ewrapped, EWrapper::Variant2);
@@ -298,7 +298,7 @@ fn struct_wrapper() {
     assert_eq!(original_clone.number, 0);
     assert_eq!(original_clone.text, "merge_test");
     assert_eq!(original_clone.generic, 0);
-    assert_eq!(original_clone.optional, Some([0].as_slice()));
+    assert_eq!(original_clone.optional, Some([0].as_ref()));
     assert_eq!(original_clone.swrapped, SWrapper::new(&0));
     assert_eq!(original_clone.twrapped, TWrapper::new(0),);
     assert_eq!(original_clone.ewrapped, EWrapper::Variant1);
@@ -345,7 +345,7 @@ fn struct_wrapper() {
     assert_eq!(opts_from.number, SWrapper::new(1));
     assert_eq!(opts_from.text, SWrapper::new("from_test"));
     assert_eq!(opts_from.generic, SWrapper::new(1));
-    assert_eq!(opts_from.optional, SWrapper::new(Some([1, 1].as_slice())));
+    assert_eq!(opts_from.optional, SWrapper::new(Some([1, 1].as_ref())));
     assert_eq!(opts_from.swrapped, SWrapper::new(&1));
     assert_eq!(opts_from.twrapped, SWrapper::new(TWrapper::new(1)));
     assert_eq!(opts_from.ewrapped, SWrapper::new(EWrapper::Variant1));
@@ -360,7 +360,7 @@ fn struct_wrapper() {
     assert_eq!(optt_from.number, TWrapper::new(1));
     assert_eq!(optt_from.text, TWrapper::new("from_test"));
     assert_eq!(optt_from.generic, TWrapper::new(1));
-    assert_eq!(optt_from.optional, TWrapper::new(Some([1, 1].as_slice())));
+    assert_eq!(optt_from.optional, TWrapper::new(Some([1, 1].as_ref())));
     assert_eq!(optt_from.swrapped, TWrapper::new(SWrapper::new(&1)));
     assert_eq!(optt_from.twrapped, TWrapper::new(1));
     assert_eq!(optt_from.ewrapped, TWrapper::new(EWrapper::Variant1));
@@ -375,7 +375,7 @@ fn struct_wrapper() {
     assert_eq!(opte_from.number, EWrapper::t(1));
     assert_eq!(opte_from.text, EWrapper::t("from_test"));
     assert_eq!(opte_from.generic, EWrapper::t(1));
-    assert_eq!(opte_from.optional, EWrapper::t(Some([1, 1].as_slice())));
+    assert_eq!(opte_from.optional, EWrapper::t(Some([1, 1].as_ref())));
     assert_eq!(opte_from.swrapped, EWrapper::t(SWrapper::new(&1)));
     assert_eq!(opte_from.twrapped, EWrapper::t(TWrapper::new(1)));
     assert_eq!(opte_from.ewrapped, EWrapper::Variant1);
@@ -681,13 +681,12 @@ fn nested_wrappers() {
     #[derive(Debug)]
     struct Wrap2<T>(T);
 
-    #[optfield(Opt, wrapper = Wrap1, attrs = add(
+    #[optfield(Opt, wrapper = Wrap1, attrs = (
         optfield(Opt1, wrapper = Wrap2),
         optfield(Opt2, wrapper = Wrap1, rewrap),
         optfield(Opt3)
     ))]
-    #[derive(Debug)]
-    struct Ogiginal {
+    struct _Original {
         _opt: Option<u32>,
         _wrap1: Wrap1<u32>,
         _wrap2: Wrap2<u32>,

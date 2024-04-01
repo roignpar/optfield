@@ -32,6 +32,8 @@ pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenS
 fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
     let mut tokens = TokenStream::new();
 
+    let wrapper = args.final_wrapper();
+
     for (i, field) in fields.iter().enumerate() {
         let field_name = match &field.ident {
             // means that original item is a tuple struct
@@ -43,13 +45,17 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
             Some(ident) => quote!(#ident),
         };
 
-        let field_tokens = if fields::is_option(field) && !args.rewrap {
+        let field_tokens = if fields::is_wrapped_in(field, &wrapper) && !args.rewrap {
             quote! {
                 #field_name: item.#field_name,
             }
-        } else {
+        } else if args.wrapper.is_none() {
             quote! {
                 #field_name: Some(item.#field_name),
+            }
+        } else {
+            quote! {
+                #field_name: From::from(item.#field_name),
             }
         };
 

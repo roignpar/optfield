@@ -1,12 +1,10 @@
 use quote::quote;
-use syn::{parse2, Field, Fields, ItemStruct, Path, Type, TypePath};
+use syn::{parse2, Field, Fields, Ident, ItemStruct, Path, Type, TypePath};
 
 use crate::args::Args;
 use crate::error::unexpected;
 
 mod attrs;
-
-const OPTION: &str = "Option";
 
 /// Wraps item fields in Option.
 pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
@@ -14,21 +12,23 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
 
     let mut fields = item.fields.clone();
 
+    let wrapper = args.final_wrapper();
+
     for field in fields.iter_mut() {
         field.attrs = attrs::generate(field, args);
         attrs::generate(field, args);
 
-        if is_option(field) && !args.rewrap {
+        if is_wrapped_in(field, &wrapper) && !args.rewrap {
             continue;
         }
 
         let ty = &field.ty;
 
-        let opt_type = quote! {
-            Option<#ty>
+        let wrapped_type = quote! {
+            #wrapper<#ty>
         };
 
-        field.ty = parse2(opt_type).unwrap_or_else(|e| {
+        field.ty = parse2(wrapped_type).unwrap_or_else(|e| {
             panic!(
                 "{}",
                 unexpected(format!("generating {} fields", item_name), e)
@@ -39,14 +39,14 @@ pub fn generate(item: &ItemStruct, args: &Args) -> Fields {
     fields
 }
 
-pub fn is_option(field: &Field) -> bool {
+pub fn is_wrapped_in(field: &Field, wrapper: &Ident) -> bool {
     match &field.ty {
         Type::Path(TypePath {
             path: Path { segments, .. },
             ..
         }) => {
             if let Some(segment) = segments.first() {
-                segment.ident == OPTION
+                &segment.ident == wrapper
             } else {
                 false
             }

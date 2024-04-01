@@ -169,6 +169,14 @@ impl Args {
             from: false,
         }
     }
+
+    pub(crate) fn final_wrapper(&self) -> Ident {
+        match &self.wrapper {
+            Some(w) => w.name.clone(),
+            // use format_ident to create an Ident without a span
+            None => quote::format_ident!("Option"),
+        }
+    }
 }
 
 impl ArgList {

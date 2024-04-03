@@ -716,3 +716,23 @@ fn nested_wrappers() {
         _wrap2: Some(Wrap1(Wrap2(3))),
     };
 }
+
+#[test]
+fn alias_wrapper() {
+    struct AnError;
+
+    type AResult<T> = Result<T, AnError>;
+
+    #[optfield(Opt, wrapper = AResult)]
+    struct _Original {
+        field: i32,
+    }
+
+    let _ = Opt {
+        field: AResult::Ok(1),
+    };
+
+    let _ = Opt {
+        field: Result::Err(AnError),
+    };
+}

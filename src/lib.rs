@@ -524,9 +524,9 @@
 //! }
 //! ```
 //! ### `wrapper` + `merge_fn`
-//! Unlike with `Option` which is part of Rust core, optfield
-//! can't make any assumptions about the custom types used as wrappers, so
-//! when using `merge_fn` a few extra things are required.
+//! Unlike with `Option` which is part of Rust core, optfield can't make any
+//! assumptions about the custom types used as wrappers, so when using
+//! `merge_fn` a few extra things are required.
 //!
 //! A `From<MyWrapper<T>> for Option<T>` implementation must exist, either
 //! generically or specifically for each type used for the original struct's

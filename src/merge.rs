@@ -74,10 +74,9 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
             }
         } else {
             quote! {
-                    if let Some(value) = Option::from(opt.#field_name) {
-                        self.#field_name = value;
-                    }
-
+                if let Some(value) = Option::from(opt.#field_name) {
+                    self.#field_name = value;
+                }
             }
         };
 

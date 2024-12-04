@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{Fields, Index, ItemStruct};
 
 use crate::args::Args;
@@ -33,6 +33,14 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
     let mut tokens = TokenStream::new();
 
     for (i, field) in fields.iter().enumerate() {
+        let mut cfg_attrs = TokenStream::new();
+
+        for attr in field.attrs.iter() {
+            if attr.path().is_ident("cfg") {
+                attr.to_tokens(&mut cfg_attrs);
+            }
+        }
+
         let field_name = match &field.ident {
             // means that original item is a tuple struct
             None => {
@@ -45,10 +53,12 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
 
         let field_tokens = if fields::is_option(field) && !args.rewrap {
             quote! {
+                #cfg_attrs
                 #field_name: item.#field_name,
             }
         } else {
             quote! {
+                #cfg_attrs
                 #field_name: Some(item.#field_name),
             }
         };

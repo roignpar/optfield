@@ -50,3 +50,20 @@ fn from_tuple_struct() {
     assert_eq!(original.1, opt_rewrap.1.unwrap());
     assert_eq!(original.2, opt_rewrap.2.unwrap());
 }
+
+#[test]
+fn from_cfg_field() {
+    #![allow(unexpected_cfgs)]
+
+    #[optfield(Opt, field_attrs, from)]
+    #[derive(Clone, Debug)]
+    struct Original {
+        #[cfg(some_feature)]
+        feature_field: String,
+        field: i32,
+    }
+
+    let original = Original { field: 1 };
+    let opt = Opt::from(original.clone());
+    assert_eq!(original.field, opt.field.unwrap());
+}

@@ -14,7 +14,7 @@ impl<'a> FieldAttrGen<'a> {
     }
 }
 
-impl<'a> AttrGenerator for FieldAttrGen<'a> {
+impl AttrGenerator for FieldAttrGen<'_> {
     fn no_docs(&self) -> bool {
         !self.args.field_doc
     }

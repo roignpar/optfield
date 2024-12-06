@@ -19,7 +19,7 @@ impl<'a> AttrGen<'a> {
     }
 }
 
-impl<'a> AttrGenerator for AttrGen<'a> {
+impl AttrGenerator for AttrGen<'_> {
     fn no_docs(&self) -> bool {
         self.args.doc.is_none()
     }

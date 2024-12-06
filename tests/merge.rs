@@ -152,3 +152,42 @@ fn merge_tuple_struct() {
     assert_eq!(original_clone.0, opt4.0.unwrap());
     assert_eq!(original_clone.1, opt4.1.unwrap());
 }
+
+#[test]
+fn merge_cfg_field() {
+    #![allow(unexpected_cfgs)]
+
+    #[optfield(Opt, attrs, merge_fn)]
+    #[optfield(OptFieldAttrs, field_attrs, attrs, merge_fn = merge_opt_attrs)]
+    #[derive(Clone, Debug)]
+    struct Original {
+        #[cfg(some_feature)]
+        feature_field: String,
+        field: i32,
+    }
+
+    let mut original = Original { field: 2 };
+    let mut opt = Opt {
+        field: None,
+        feature_field: None,
+    };
+
+    original.merge_opt(opt.clone());
+    assert_eq!(original.field, 2);
+
+    opt.field = Some(3);
+    opt.feature_field = Some("test".to_string());
+
+    original.merge_opt(opt);
+    assert_eq!(original.field, 3);
+
+    let mut opt_attrs = OptFieldAttrs { field: None };
+
+    original.merge_opt_attrs(opt_attrs.clone());
+    assert_eq!(original.field, 3);
+
+    opt_attrs.field = Some(4);
+
+    original.merge_opt_attrs(opt_attrs);
+    assert_eq!(original.field, 4);
+}

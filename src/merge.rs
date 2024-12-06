@@ -1,11 +1,12 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{Fields, Ident, Index, ItemStruct};
 
 use crate::args::{Args, MergeFnName};
 use crate::fields;
 
 const DEFAULT_FN_NAME: &str = "merge_opt";
+const CFG: &str = "cfg";
 
 pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenStream {
     if let Some(merge_fn) = &args.merge {
@@ -40,6 +41,14 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
     let mut tokens = TokenStream::new();
 
     for (i, field) in fields.iter().enumerate() {
+        let mut cfg_attrs = TokenStream::new();
+
+        for attr in field.attrs.iter() {
+            if attr.path().is_ident(CFG) {
+                attr.to_tokens(&mut cfg_attrs);
+            }
+        }
+
         let field_name = match &field.ident {
             // means that original item is a tuple struct
             None => {
@@ -52,14 +61,20 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
 
         let field_tokens = if fields::is_option(field) && !args.rewrap {
             quote! {
-                if opt.#field_name.is_some() {
-                    self.#field_name = opt.#field_name;
+                #cfg_attrs
+                {
+                    if opt.#field_name.is_some() {
+                        self.#field_name = opt.#field_name;
+                    }
                 }
             }
         } else {
             quote! {
-                if let Some(value) = opt.#field_name {
-                    self.#field_name = value
+                #cfg_attrs
+                {
+                    if let Some(value) = opt.#field_name {
+                        self.#field_name = value
+                    }
                 }
             }
         };

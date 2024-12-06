@@ -5,6 +5,8 @@ use syn::{Fields, Index, ItemStruct};
 use crate::args::Args;
 use crate::fields;
 
+const CFG: &str = "cfg";
+
 pub fn generate(item: &ItemStruct, opt_item: &ItemStruct, args: &Args) -> TokenStream {
     if args.from {
         let item_name = &item.ident;
@@ -36,7 +38,7 @@ fn field_bindings(fields: &Fields, args: &Args) -> TokenStream {
         let mut cfg_attrs = TokenStream::new();
 
         for attr in field.attrs.iter() {
-            if attr.path().is_ident("cfg") {
+            if attr.path().is_ident(CFG) {
                 attr.to_tokens(&mut cfg_attrs);
             }
         }
